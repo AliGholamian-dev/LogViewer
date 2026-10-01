@@ -12,4 +12,4 @@ internal void EntryPoint_Main_InitApplication(int argc, char **argv); /// TODO: 
 internal void EntryPoint_Main_RunApplication(void); /// TODO: Get parsed command line struct as input
 internal void EntryPoint_CallMainThreadEntryPoint(int argc, char **argv);
 
-#endif // BASE_ENTRY_POINT_HPP
+#endif // ENTRY_POINT_ENTRY_POINT_HPP
