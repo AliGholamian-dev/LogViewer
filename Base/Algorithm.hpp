@@ -76,4 +76,12 @@ constexpr SizeType GB(SizeType value)
     return value << 30;
 }
 
+template<typename FromType, typename ToType>
+constexpr ToType SafeCast(const FromType fromValue)
+{
+    Assert(fromValue >= GetLowestNumericLimitOf<ToType>(), "Cast failed, out of range (value < Lowest Numeric Limit)");
+    Assert(fromValue <= GetHighestNumericLimitOf<ToType>(), "Cast failed, out of range (value > Highest Numeric Limit)");
+    return static_cast<ToType>(fromValue);
+}
+
 #endif // BASE_ALGORITHM_HPP
