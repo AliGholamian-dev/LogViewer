@@ -4,14 +4,14 @@ internal ThreadContext *ThreadContext_Allocate(void)
 {
     const ArenaParams threadContextScratchAren0aParams
     {
-        .reserveSizeInBytes = MB(64),
+        .reserveSizeInBytes = MB(1),
         .commitSizeInBytes = KB(64),
         .optionalBackingBuffer = nullptr,
         .configFlags = Flag_NoFlags<FlagType<ArenaConfigs>>()
     };
     const ArenaParams threadContextScratchAren1aParams
     {
-        .reserveSizeInBytes = MB(64),
+        .reserveSizeInBytes = MB(1),
         .commitSizeInBytes = KB(64),
         .optionalBackingBuffer = nullptr,
         .configFlags = Flag_NoFlags<FlagType<ArenaConfigs>>()
@@ -26,12 +26,16 @@ internal ThreadContext *ThreadContext_Allocate(void)
 
 internal void ThreadContext_Release(ThreadContext *threadContext)
 {
+    Assert(threadContext != nullptr, "Null thread context");
+
     Arena_Release(threadContext->scratchArenas[1]);
     Arena_Release(threadContext->scratchArenas[0]);
 }
 
 internal void ThreadContext_Select(ThreadContext *threadContext)
 {
+    Assert(threadContext != nullptr, "Null thread context");
+    
     t_threadLocalThreadContext = threadContext;
 }
 

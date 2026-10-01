@@ -1,9 +1,9 @@
-#ifndef BASE_SYSTEm_INFO_HPP
-#define BASE_SYSTEm_INFO_HPP
+#ifndef BASE_SYSTEM_INFO_HPP
+#define BASE_SYSTEM_INFO_HPP
 
 struct SystemInfo
 {
-    UInt64 numberOfLogicalProcessors;
+    UInt64 logicalProcessorCount;
     SizeType pageSize;
     SizeType largePageSize;
     SizeType allocationGranularity;
@@ -11,5 +11,4 @@ struct SystemInfo
 
 internal SystemInfo *SystemInfo_Get(void);
 
-
-#endif // BASE_SYSTEm_INFO_HPP
+#endif // BASE_SYSTEM_INFO_HPP

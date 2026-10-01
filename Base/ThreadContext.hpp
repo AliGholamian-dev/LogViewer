@@ -3,7 +3,7 @@
 
 struct ThreadContext
 {
-  Arena *scratchArenas[2];
+    Arena *scratchArenas[2];
 };
 
 internal ThreadContext *ThreadContext_Allocate(void);

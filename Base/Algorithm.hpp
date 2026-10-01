@@ -2,13 +2,13 @@
 #define BASE_ALGORITHM_HPP
 
 template<typename T>
-consteval T GetHighestNumericLimit()
+consteval T GetHighestNumericLimitOf()
 {
     return std::numeric_limits<T>::max();
 }
 
 template<typename T>
-consteval T GetLowestNumericLimit()
+consteval T GetLowestNumericLimitOf()
 {
     return std::numeric_limits<T>::lowest();
 }
@@ -61,17 +61,17 @@ constexpr T AlignPaddingPow2(const T value, const T alignment)
     return (0 - value) & (alignment - 1);
 }
 
-constexpr UInt64 KB(UInt64 value)
+constexpr SizeType KB(SizeType value)
 {
     return value << 10;
 }
 
-constexpr UInt64 MB(UInt64 value)
+constexpr SizeType MB(SizeType value)
 {
     return value << 20;
 }
 
-constexpr UInt64 GB(UInt64 value)
+constexpr SizeType GB(SizeType value)
 {
     return value << 30;
 }
