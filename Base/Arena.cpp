@@ -126,3 +126,19 @@ internal void Arena_Clear(Arena *arena)
 
     Arena_PopToPosition(arena, 0);
 }
+
+internal TempArena TempArena_Begin(Arena *arena)
+{
+    Assert(arena != nullptr, "Null arena");
+
+    return TempArena
+    {
+        .arena = arena,
+        .position = Arena_GetPosition(arena)
+    };
+}
+
+internal void TempArena_End(TempArena tempArena)
+{
+    Arena_PopToPosition(tempArena.arena, tempArena.position);
+}

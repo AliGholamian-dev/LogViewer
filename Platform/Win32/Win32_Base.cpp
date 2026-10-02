@@ -25,7 +25,6 @@ struct Win32Entity
 
 struct Win32PlatformState
 {
-    HINSTANCE hInstance;
     SystemInfo systemInfo;
     CRITICAL_SECTION entityMutex;
     Arena *entityArena;
@@ -33,6 +32,11 @@ struct Win32PlatformState
 };
 
 global Win32PlatformState g_win32PlatformState {};
+
+internal SystemInfo *SystemInfo_Get(void)
+{
+    return &g_win32PlatformState.systemInfo;
+}
 
 internal void *Memory_Reserve(const SizeType sizeInBytes)
 {
@@ -68,7 +72,7 @@ internal void Memory_Release(void *ptr, const SizeType sizeInBytes)
 
 internal void Memory_Set(void *ptr, const UInt8 value, const SizeType sizeInBytes)
 {
-    std::memset(ptr, value, sizeInBytes);
+    memset(ptr, value, sizeInBytes);
 }
 
 internal void Memory_Zero(void *ptr, const SizeType sizeInBytes)
@@ -78,12 +82,7 @@ internal void Memory_Zero(void *ptr, const SizeType sizeInBytes)
 
 internal void Memory_Copy(void *destination, const void *source, const SizeType sizeInBytes)
 {
-    std::memcpy(destination, source, sizeInBytes);
-}
-
-internal SystemInfo *SystemInfo_Get(void)
-{
-    return &g_win32PlatformState.systemInfo;
+    memcpy(destination, source, sizeInBytes);
 }
 
 internal Win32Entity *Win32_AllocateEntity(Win32EntityKind entityKind)
@@ -94,7 +93,7 @@ internal Win32Entity *Win32_AllocateEntity(Win32EntityKind entityKind)
         win32Entity = g_win32PlatformState.firstFreeEntity;
         if(win32Entity != nullptr)
         {
-            // assert(win32Entity->kind == Win32EntityKind::Free);
+            Assert(win32Entity->kind == Win32EntityKind::Free, "Free Win32Entity does not have Free kind as tag");
             g_win32PlatformState.firstFreeEntity = g_win32PlatformState.firstFreeEntity->freeData.nextFree;
         }
         else
@@ -104,12 +103,15 @@ internal Win32Entity *Win32_AllocateEntity(Win32EntityKind entityKind)
         Memory_Zero(win32Entity, sizeof(*win32Entity));
     }
     LeaveCriticalSection(&g_win32PlatformState.entityMutex);
+
+    Assert(win32Entity != nullptr, "Could not allocate Win32Entity");
     win32Entity->kind = entityKind;
     return win32Entity;
 }
 
 internal void Win32_ReleaseEntity(Win32Entity *entity)
 {
+    Assert(entity != nullptr, "Null Win32Entity");
     entity->kind = Win32EntityKind::Free;
     EnterCriticalSection(&g_win32PlatformState.entityMutex);
     entity->freeData.nextFree = g_win32PlatformState.firstFreeEntity;
@@ -117,10 +119,11 @@ internal void Win32_ReleaseEntity(Win32Entity *entity)
     LeaveCriticalSection(&g_win32PlatformState.entityMutex);
 }
 
-internal DWORD Win32_ThreadEntryPoint(void *win32Params)
+internal DWORD WINAPI Win32_ThreadEntryPoint(void *win32Params) noexcept
 {
+    Assert(win32Params != nullptr, "Null param in Win32_ThreadEntryPoint, can not get Win32Entity");
     Win32Entity *entity { static_cast<Win32Entity*>(win32Params) };
-    EntryPoint_SupplementThread(entity->thread.entryPointFunction, entity->thread.params);
+    Thread_CallThreadEntryPoint(entity->thread.entryPointFunction, entity->thread.params);
     return 0;
 }
 
@@ -129,7 +132,7 @@ internal Thread Thread_Launch(ThreadEntryPointFunctionType *entryPointFunction, 
     Win32Entity *entity { Win32_AllocateEntity(Win32EntityKind::Thread) };
     entity->thread.entryPointFunction = entryPointFunction;
     entity->thread.params = params;
-    entity->thread.handle = CreateThread(0, 0, Win32_ThreadEntryPoint, entity, 0, &entity->thread.id);
+    entity->thread.handle = CreateThread(NULL, 0, Win32_ThreadEntryPoint, entity, 0, &entity->thread.id);
     return Thread
     {
         .impl = entity
@@ -139,17 +142,19 @@ internal Thread Thread_Launch(ThreadEntryPointFunctionType *entryPointFunction, 
 internal Bool8 Thread_Join(Thread thread, const MilliSeconds waitTimeInMilliSeconds)
 {
     Win32Entity *entity { static_cast<Win32Entity*>(thread.impl) };
+    Assert(entity != nullptr, "Null Win32Entity of thread kind");
+
     DWORD waitResult { WAIT_OBJECT_0 };
     if(entity != nullptr)
     {
         DWORD waitTime { 0 };
-        if(waitTimeInMilliSeconds.value == GetHighestNumericLimit<MilliSeconds::Representation>())
+        if(waitTimeInMilliSeconds.value == GetHighestNumericLimitOf<MilliSeconds::Representation>())
         {
             waitTime = INFINITE;
         }
         else if (waitTimeInMilliSeconds.value > 0)
         {
-            waitTime = static_cast<DWORD>(waitTimeInMilliSeconds.value);
+            waitTime = SafeCast<MilliSeconds::Representation, DWORD>(waitTimeInMilliSeconds.value);
         }
         waitResult = WaitForSingleObject(entity->thread.handle, waitTime);
         CloseHandle(entity->thread.handle);
@@ -161,6 +166,8 @@ internal Bool8 Thread_Join(Thread thread, const MilliSeconds waitTimeInMilliSeco
 internal void Thread_Detach(Thread thread)
 {
     Win32Entity *entity { static_cast<Win32Entity*>(thread.impl) };
+    Assert(entity != nullptr, "Null Win32Entity of thread kind");
+
     if(entity != nullptr)
     {
         CloseHandle(entity->thread.handle);
@@ -168,30 +175,45 @@ internal void Thread_Detach(Thread thread)
     }
 }
 
-internal void Win32_InitPlatform(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
+internal void Win32_InitPlatform(void)
 {    
-    Unused(hPrevInstance, pCmdLine, nCmdShow);
-
-    g_win32PlatformState.hInstance = hInstance;
+    Bool8 largePagesAllowed { false };
+    {
+        HANDLE token {};
+        if(OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token))
+        {
+            LUID luid {};
+            if(LookupPrivilegeValue(0, SE_LOCK_MEMORY_NAME, &luid))
+            {
+                TOKEN_PRIVILEGES priv {};
+                priv.PrivilegeCount           = 1;
+                priv.Privileges[0].Luid       = luid;
+                priv.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+                largePagesAllowed = !!AdjustTokenPrivileges(token, 0, &priv, sizeof(priv), NULL, NULL);
+            }
+            CloseHandle(token);
+        }
+    }
 
     SYSTEM_INFO win32Systeminfo {};
     GetSystemInfo(&win32Systeminfo);
     g_win32PlatformState.systemInfo = SystemInfo
     {
-        .numberOfLogicalProcessors = static_cast<UInt64>(win32Systeminfo.dwNumberOfProcessors),
-        .pageSize = static_cast<SizeType>(win32Systeminfo.dwPageSize),
+        .logicalProcessorCount = SafeCast<DWORD, UInt64>(win32Systeminfo.dwNumberOfProcessors),
+        .pageSize = SafeCast<DWORD, SizeType>(win32Systeminfo.dwPageSize),
         .largePageSize = GetLargePageMinimum(),
-        .allocationGranularity = static_cast<SizeType>(win32Systeminfo.dwAllocationGranularity)
+        .allocationGranularity = SafeCast<DWORD, SizeType>(win32Systeminfo.dwAllocationGranularity),
+        .largePagesAllowed = largePagesAllowed && GetLargePageMinimum() > 0
     };
 
     InitializeCriticalSection(&g_win32PlatformState.entityMutex);
     {
         const ArenaParams entityArenaParams
         {
-            .reserveSizeInBytes = MB(64),
-            .commitSizeInBytes = KB(64),
+            .reserveSizeInBytes = SystemInfo_Get()->largePagesAllowed ? SystemInfo_Get()->largePageSize : MB(1),
+            .commitSizeInBytes = SystemInfo_Get()->largePagesAllowed ? SystemInfo_Get()->largePageSize : MB(64),
             .optionalBackingBuffer = nullptr,
-            .configFlags = Flag_NoFlags<FlagType<ArenaConfigs>>()
+            .configFlags = SystemInfo_Get()->largePagesAllowed ? Flag_ConvertEnumToValue<ArenaConfigs>(ArenaConfigs::LargePages) : Flag_NoFlags<ArenaConfigs>()
         };
         g_win32PlatformState.entityArena = Arena_Allocate(&entityArenaParams);
     }
@@ -205,18 +227,4 @@ internal void Win32_DeInitPlatform(void)
 {
     /// Note: Reserved, do not cleanup resources that are claimed by OS automatically upon exit
     NoOp();
-}
-
-internal HINSTANCE Win32_GetModule(void)
-{
-    return g_win32PlatformState.hInstance;
-}
-
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
-{
-    Win32_InitPlatform(hInstance, hPrevInstance, pCmdLine, nCmdShow);
-    /// TODO: Maybe pass parsed command line arguments
-    int runResult { EntryPoint_MainThread() };
-    Win32_DeInitPlatform();
-    return runResult;
 }

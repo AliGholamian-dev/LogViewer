@@ -7,14 +7,8 @@ struct String8
     SizeType length;
 };
 
-internal String8 String8_Create(UInt8* str, const SizeType length)
-{
-    return String8
-    {
-        .str = str,
-        .length = length
-    };
-}
+internal String8 String8_Create(UInt8* str, const SizeType length);
+internal String8 String8_Copy(Arena* arena, const String8 stringToCopyFrom);
 
 template <SizeType N>
 constexpr const String8 String8_CreateFromLiteral(const char (&literal)[N])
@@ -23,18 +17,24 @@ constexpr const String8 String8_CreateFromLiteral(const char (&literal)[N])
     return String8_Create(static_cast<UInt8*>(nonConstLiteral), N - 1);
 }
 
-internal String8 String8_Copy(Arena* arena, const String8 stringToCopyFrom)
+struct String16
 {
-    Assert(arena != nullptr, "Null arena for string copy");
+    UInt16* str;
+    SizeType length;
+};
 
-    String8 copiedString
-    {
-        .str = Arena_PushArray<UInt8>(arena, stringToCopyFrom.length + 1),
-        .length = stringToCopyFrom.length
-    };
-    Memory_Copy(copiedString.str, stringToCopyFrom.str, stringToCopyFrom.length);
-    copiedString.str[stringToCopyFrom.length] = 0;
-    return copiedString;
-}
+internal String16 String16_Create(UInt16* str, const SizeType length);
+internal String16 String16_CreateFromString8(Arena *arena, String8 string8);
+
+struct UnicodeDecode
+{
+    UInt32 inc;
+    UInt32 codepoint;
+};
+
+internal UnicodeDecode UTF8_Decode(UInt8 *str, SizeType max);
+internal UnicodeDecode UTF16_Decode(UInt16 *str, SizeType max);
+internal UInt32 UTF8_Encode(UInt8 *str, UInt32 codepoint);
+internal UInt32 UTF16_Encode(UInt16 *str, UInt32 codepoint);
 
 #endif // BASE_STRING_HPP

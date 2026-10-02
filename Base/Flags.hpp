@@ -25,17 +25,17 @@ constexpr FlagType<EnumType> Flag_ResetBit(const FlagType<EnumType> flags, const
     return (flags & (~Flag_ConvertEnumToValue(enumValue)));
 }
 
-template <typename T>
-constexpr T Flag_ClearAllBits(const T flags)
+template <FlagEnum EnumType>
+constexpr FlagType<EnumType> Flag_ClearAllBits(const FlagType<EnumType> flags)
 {
     Unused(flags);
-    return static_cast<T>(0);
+    return static_cast<FlagType<EnumType>>(0);
 }
 
-template <typename T>
-consteval T Flag_NoFlags()
+template <FlagEnum EnumType>
+consteval FlagType<EnumType> Flag_NoFlags()
 {
-    return static_cast<T>(0);
+    return static_cast<FlagType<EnumType>>(0);
 }
 
 template <FlagEnum EnumType>

@@ -1,11 +1,12 @@
 internal void EntryPoint_Async_Enter(void *params)
 {
     Unused(params);
-    /// TODO:
+    /// TODO: Setup LaneCTX and ...
 }
 
-internal void EntryPoint_CallMainThreadEntryPoint(int argc, char **argv)
+internal void EntryPoint_CallMainThreadEntryPoint(void)
 {
-    EntryPoint_Main_InitApplication(argc, argv);
+    /// TODO: Setup LaneCTX and ...
+    EntryPoint_Main_InitApplication();
     EntryPoint_Main_RunApplication();
 }

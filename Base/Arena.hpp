@@ -24,6 +24,12 @@ struct Arena
     FlagType<ArenaConfigs> configFlags;
 };
 
+struct TempArena
+{
+    Arena *arena;
+    SizeType position;
+};
+
 internal Arena *Arena_Allocate(const ArenaParams* params);
 internal void Arena_Release(Arena *arena);
 internal SizeType Arena_GetPosition(const Arena *arena);
@@ -31,6 +37,9 @@ internal void *Arena_Push(Arena *arena, const SizeType sizeInBytes, const SizeTy
 internal void Arena_PopToPosition(Arena *arena, const SizeType positionToPopTo);
 internal void Arena_PopByAmount(Arena *arena, const SizeType amountToPop);
 internal void Arena_Clear(Arena *arena);
+
+internal TempArena TempArena_Begin(Arena *arena);
+internal void TempArena_End(TempArena tempArena);
 
 template <typename T>
 T* Arena_PushArrayAligned(Arena *arena, const SizeType arrayCapacity, const SizeType alignmentInBytes)

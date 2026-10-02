@@ -1,21 +1,22 @@
 #ifndef BASE_BASIC_DATA_TYPES_HPP
 #define BASE_BASIC_DATA_TYPES_HPP
 
-using UInt8    = std::uint8_t;
-using UInt16   = std::uint16_t;
-using UInt32   = std::uint32_t;
-using UInt64   = std::uint64_t;
-using Bool8    = bool;
-using Bool16   = UInt16;
-using Bool32   = UInt32;
-using Bool64   = UInt64;
-using SInt8    = std::int8_t;
-using SInt16   = std::int16_t;
-using SInt32   = std::int32_t;
-using SInt64   = std::int64_t;
-using Float32  = float;
-using Float64  = double;
-using SizeType = std::size_t;
+using UInt8       = std::uint8_t;
+using UInt16      = std::uint16_t;
+using UInt32      = std::uint32_t;
+using UInt64      = std::uint64_t;
+using Bool8       = bool;
+using Bool16      = UInt16;
+using Bool32      = UInt32;
+using Bool64      = UInt64;
+using SInt8       = std::int8_t;
+using SInt16      = std::int16_t;
+using SInt32      = std::int32_t;
+using SInt64      = std::int64_t;
+using Float32     = float;
+using Float64     = double;
+using SizeType    = std::size_t;
+using PtrDiffType = std::ptrdiff_t;
 
 StaticAssert(sizeof(UInt8)    == 1, "[BasicDataTypes]: UInt8 should be 1 byte");
 StaticAssert(sizeof(UInt16)   == 2, "[BasicDataTypes]: UInt16 should be 2 bytes");

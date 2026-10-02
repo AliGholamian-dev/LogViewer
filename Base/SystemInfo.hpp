@@ -7,6 +7,7 @@ struct SystemInfo
     SizeType pageSize;
     SizeType largePageSize;
     SizeType allocationGranularity;
+    Bool8 largePagesAllowed;
 };
 
 internal SystemInfo *SystemInfo_Get(void);
