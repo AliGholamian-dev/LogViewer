@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <limits>
 #include <ratio>
+#include <utility>
 #pragma warning(push, 0)
     #pragma warning(disable: 5039)
     #pragma warning(disable: 4865)
@@ -52,3 +53,7 @@
 #include "Platform/Win32/Win32_WindowManager.cpp"
 
 /// App layer
+#include "GUIApp/GUIApp.hpp"
+#include "GUIApp/GUIApp.cpp"
+
+/// LogViewer layer

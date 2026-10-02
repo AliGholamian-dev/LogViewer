@@ -8,7 +8,7 @@
 /// TODO: Wait for all threads (main and async to join)
 internal void EntryPoint_Async_Enter(void *params); /// TODO: Setup LaneCTX and ...
 internal void EntryPoint_Async_Update(void); /// TODO: Pass lane ctx? or params?
-internal void EntryPoint_Main_InitApplication(void); /// TODO: Parse command line and return it
+internal void EntryPoint_Main_InitApplication(void); /// TODO: Parse command line and return it, same as main_thread_base_entry_point maybe
 internal void EntryPoint_Main_RunApplication(void); /// TODO: Get parsed command line struct as input
 internal void EntryPoint_CallMainThreadEntryPoint(void);
 

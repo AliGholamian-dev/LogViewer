@@ -132,7 +132,7 @@ internal Thread Thread_Launch(ThreadEntryPointFunctionType *entryPointFunction, 
     Win32Entity *entity { Win32_AllocateEntity(Win32EntityKind::Thread) };
     entity->thread.entryPointFunction = entryPointFunction;
     entity->thread.params = params;
-    entity->thread.handle = CreateThread(NULL, 0, Win32_ThreadEntryPoint, entity, 0, &entity->thread.id);
+    entity->thread.handle = CreateThread(nullptr, 0, Win32_ThreadEntryPoint, entity, 0, &entity->thread.id);
     return Thread
     {
         .impl = entity
@@ -177,19 +177,23 @@ internal void Thread_Detach(Thread thread)
 
 internal void Win32_InitPlatform(void)
 {    
-    Bool8 largePagesAllowed { false };
+    Bool8 m_largePagesAllowed { false };
     {
         HANDLE token {};
         if(OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token))
         {
             LUID luid {};
+            SetLastError(ERROR_SUCCESS);
             if(LookupPrivilegeValue(0, SE_LOCK_MEMORY_NAME, &luid))
             {
                 TOKEN_PRIVILEGES priv {};
                 priv.PrivilegeCount           = 1;
                 priv.Privileges[0].Luid       = luid;
                 priv.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-                largePagesAllowed = !!AdjustTokenPrivileges(token, 0, &priv, sizeof(priv), NULL, NULL);
+                if (AdjustTokenPrivileges(token, FALSE, &priv, sizeof(priv), nullptr, nullptr))
+                { 
+                    m_largePagesAllowed = (GetLastError() != ERROR_NOT_ALL_ASSIGNED);
+                }
             }
             CloseHandle(token);
         }
@@ -203,7 +207,7 @@ internal void Win32_InitPlatform(void)
         .pageSize = SafeCast<DWORD, SizeType>(win32Systeminfo.dwPageSize),
         .largePageSize = GetLargePageMinimum(),
         .allocationGranularity = SafeCast<DWORD, SizeType>(win32Systeminfo.dwAllocationGranularity),
-        .largePagesAllowed = largePagesAllowed && GetLargePageMinimum() > 0
+        .largePagesAllowed = m_largePagesAllowed && GetLargePageMinimum() > 0
     };
 
     InitializeCriticalSection(&g_win32PlatformState.entityMutex);
@@ -211,7 +215,7 @@ internal void Win32_InitPlatform(void)
         const ArenaParams entityArenaParams
         {
             .reserveSizeInBytes = SystemInfo_Get()->largePagesAllowed ? SystemInfo_Get()->largePageSize : MB(1),
-            .commitSizeInBytes = SystemInfo_Get()->largePagesAllowed ? SystemInfo_Get()->largePageSize : MB(64),
+            .commitSizeInBytes = SystemInfo_Get()->largePagesAllowed ? SystemInfo_Get()->largePageSize : KB(64),
             .optionalBackingBuffer = nullptr,
             .configFlags = SystemInfo_Get()->largePagesAllowed ? Flag_ConvertEnumToValue<ArenaConfigs>(ArenaConfigs::LargePages) : Flag_NoFlags<ArenaConfigs>()
         };

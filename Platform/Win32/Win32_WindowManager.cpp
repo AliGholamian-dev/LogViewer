@@ -53,13 +53,13 @@ internal void WindowManager_Init(void)
         const ArenaParams windowManagerArenaParams
         {
             .reserveSizeInBytes = SystemInfo_Get()->largePagesAllowed ? SystemInfo_Get()->largePageSize : MB(1),
-            .commitSizeInBytes = SystemInfo_Get()->largePagesAllowed ? SystemInfo_Get()->largePageSize : MB(64),
+            .commitSizeInBytes = SystemInfo_Get()->largePagesAllowed ? SystemInfo_Get()->largePageSize : KB(64),
             .optionalBackingBuffer = nullptr,
             .configFlags = SystemInfo_Get()->largePagesAllowed ? Flag_ConvertEnumToValue<ArenaConfigs>(ArenaConfigs::LargePages) : Flag_NoFlags<ArenaConfigs>()
         };
         g_win32WindowManagerState.arena = Arena_Allocate(&windowManagerArenaParams);
     }
-    g_win32WindowManagerState.hInstance = GetModuleHandle(NULL);
+    g_win32WindowManagerState.hInstance = GetModuleHandle(nullptr);
     
     if(!SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
     {
@@ -75,12 +75,12 @@ internal void WindowManager_Init(void)
             .cbClsExtra = 0, /// TODO:
             .cbWndExtra = 0, /// TODO:
             .hInstance = g_win32WindowManagerState.hInstance,
-            .hIcon = NULL, /// TODO: From resources when added and bundled in exe
-            .hCursor = LoadCursor(NULL, IDC_ARROW), /// TODO: From resources when added and bundled in exe
-            .hbrBackground = NULL,  /// TODO:
-            .lpszMenuName = NULL,  /// TODO:
+            .hIcon = nullptr, /// TODO: From resources when added and bundled in exe
+            .hCursor = LoadCursor(nullptr, IDC_ARROW), /// TODO: From resources when added and bundled in exe
+            .hbrBackground = nullptr,  /// TODO:
+            .lpszMenuName = nullptr,  /// TODO:
             .lpszClassName = g_win32WindowManagerState.windowClassName,
-            .hIconSm = NULL  /// TODO:
+            .hIconSm = nullptr  /// TODO:
         };
         ATOM windowAtom { RegisterClassEx(&windowClass) };
         Unused(windowAtom);
@@ -109,9 +109,9 @@ internal WM_Window WindowManager_OpenWindow(const Position2D<SInt32> position, c
             SafeCast<UInt16, int>(size.width),
             SafeCast<UInt16, int>(size.height),
             0, 
-            NULL,
+            nullptr,
             g_win32WindowManagerState.hInstance,
-            NULL);
+            nullptr);
         DragAcceptFiles(hwnd, TRUE);
         ThreadContext_EndScratchArena(scratchArena);
     }
@@ -120,7 +120,6 @@ internal WM_Window WindowManager_OpenWindow(const Position2D<SInt32> position, c
     {
         win32Window->hwnd = hwnd;
         win32Window->hdc = GetDC(hwnd);
-        win32Window->dpi = SafeCast<UINT, Float32>(GetDpiForWindow(hwnd));
         win32Window->dpi = SafeCast<UINT, Float32>(GetDpiForWindow(hwnd));
         win32Window->firstPaintDone = false;
         win32Window->maximized = false;

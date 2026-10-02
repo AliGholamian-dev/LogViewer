@@ -1,0 +1,4 @@
+#ifndef GUI_APP_GUI_APP_HPP
+#define GUI_APP_GUI_APP_HPP
+
+#endif // GUI_APP_GUI_APP_HPP

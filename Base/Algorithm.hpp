@@ -208,11 +208,52 @@ constexpr SizeType GB(SizeType value)
     return value << 30;
 }
 
+#include <type_traits>
+#include <limits>
+#include <cmath>
+
 template<typename FromType, typename ToType>
 constexpr ToType SafeCast(const FromType fromValue)
 {
-    Assert(fromValue >= GetLowestNumericLimitOf<ToType>(), "Cast failed, out of range (value < Lowest Numeric Limit)");
-    Assert(fromValue <= GetHighestNumericLimitOf<ToType>(), "Cast failed, out of range (value > Highest Numeric Limit)");
+    if constexpr (std::is_integral_v<FromType> && std::is_integral_v<ToType>)
+    {
+        if constexpr (std::is_signed_v<FromType> && std::is_unsigned_v<ToType>)
+        {
+            // Signed -> unsigned.
+            using UnsignedFrom = std::make_unsigned_t<FromType>;
+            Assert(fromValue >= 0, "Cast failed, out of range (negative value -> unsigned)");
+            Assert(static_cast<UnsignedFrom>(fromValue) <= GetHighestNumericLimitOf<ToType>(), "Cast failed, out of range (value > Highest Numeric Limit)");
+        }
+        else if constexpr (std::is_unsigned_v<FromType> && std::is_signed_v<ToType>)
+        {
+            // Unsigned -> signed.
+            using UnsignedTo = std::make_unsigned_t<ToType>;
+            Assert(fromValue <= static_cast<UnsignedTo>(GetHighestNumericLimitOf<ToType>()), "Cast failed, out of range (value > Highest Numeric Limit)");
+        }
+        else
+        {
+            // Same signedness.
+            Assert(fromValue >= GetLowestNumericLimitOf<ToType>(), "Cast failed, out of range (value < Lowest Numeric Limit)");
+            Assert(fromValue <= GetHighestNumericLimitOf<ToType>(), "Cast failed, out of range (value > Highest Numeric Limit)");
+        }
+    }
+    else if constexpr (std::is_floating_point_v<FromType> && std::is_integral_v<ToType>)
+    {
+        Assert(std::isfinite(fromValue), "Cast failed, floating point value is not finite");
+        Assert(fromValue >= GetLowestNumericLimitOf<ToType>(), "Cast failed, out of range (value < Lowest Numeric Limit)");
+        Assert(fromValue <= GetHighestNumericLimitOf<ToType>(), "Cast failed, out of range (value > Highest Numeric Limit)");
+    }
+    else if constexpr (std::is_integral_v<FromType> && std::is_floating_point_v<ToType>)
+    {
+        Assert(static_cast<Float64>(fromValue) >= GetLowestNumericLimitOf<ToType>(), "Cast failed, out of range (value < Lowest Numeric Limit)");
+        Assert(static_cast<Float64>(fromValue) <= GetHighestNumericLimitOf<ToType>(), "Cast failed, out of range (value > Highest Numeric Limit)");
+    }
+    else if constexpr (std::is_floating_point_v<FromType> && std::is_floating_point_v<ToType>)
+    {
+        Assert(std::isfinite(fromValue), "Cast failed, floating point value is not finite");
+        Assert(fromValue >= GetLowestNumericLimitOf<ToType>(), "Cast failed, out of range (value < Lowest Numeric Limit)");
+        Assert(fromValue <= GetHighestNumericLimitOf<ToType>(), "Cast failed, out of range (value > Highest Numeric Limit)");
+    }
     return static_cast<ToType>(fromValue);
 }
 

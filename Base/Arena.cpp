@@ -60,25 +60,26 @@ internal SizeType Arena_GetPosition(const Arena *arena)
 }
 
 internal void *Arena_Push(Arena *arena, const SizeType sizeInBytes, const SizeType alignmentInBytes, const Bool8 memoryShouldBeZeroed)
-{
+{    
     Assert(arena != nullptr, "Null arena");
 
     const SizeType prePushPosition { AlignUpPow2<SizeType>(arena->position, alignmentInBytes) };
+    Assert(sizeInBytes < arena->bytesReserved - prePushPosition, "Arena push exceeds reserved size");
     const SizeType postPushPosition { prePushPosition + sizeInBytes };
 
-    SizeType size_to_zero { 0 };
+    SizeType sizeToZero { 0 };
     if(memoryShouldBeZeroed)
     {
-        size_to_zero = MinOf<SizeType>(arena->bytesCommitted, postPushPosition) - prePushPosition;
+        sizeToZero = MinOf<SizeType>(arena->bytesCommitted, postPushPosition) - prePushPosition;
     }
 
     if(postPushPosition > arena->bytesCommitted)
     {
-        SizeType postPushCommitedSizeInBytesAligned { postPushPosition + arena->commitSizeInBytes - 1 };
-        postPushCommitedSizeInBytesAligned -= postPushCommitedSizeInBytesAligned % arena->commitSizeInBytes;
-        const SizeType postPushCommitedSizeInBytesClamped { ClampTop<SizeType>(postPushCommitedSizeInBytesAligned, arena->bytesReserved) };
-        const SizeType commitSizeInBytes { postPushCommitedSizeInBytesClamped - arena->bytesCommitted };
-        UInt8 *commitPtr = reinterpret_cast<UInt8*>(arena) + arena->bytesCommitted;
+        SizeType postPushCommittedSizeInBytesAligned { postPushPosition + arena->commitSizeInBytes - 1 };
+        postPushCommittedSizeInBytesAligned -= postPushCommittedSizeInBytesAligned % arena->commitSizeInBytes;
+        const SizeType postPushCommittedSizeInBytesClamped { ClampTop<SizeType>(postPushCommittedSizeInBytesAligned, arena->bytesReserved) };
+        const SizeType commitSizeInBytes { postPushCommittedSizeInBytesClamped - arena->bytesCommitted };
+        UInt8 *commitPtr { reinterpret_cast<UInt8*>(arena) + arena->bytesCommitted };
         if(Flag_CheckBitIsSet(arena->configFlags, ArenaConfigs::LargePages))
         {
             Memory_CommitLarge(commitPtr, commitSizeInBytes);
@@ -87,7 +88,7 @@ internal void *Arena_Push(Arena *arena, const SizeType sizeInBytes, const SizeTy
         {
             Memory_Commit(commitPtr, commitSizeInBytes);
         }
-        arena->bytesCommitted = postPushCommitedSizeInBytesClamped;
+        arena->bytesCommitted = postPushCommittedSizeInBytesClamped;
     }
 
     void *result { nullptr };
@@ -95,7 +96,7 @@ internal void *Arena_Push(Arena *arena, const SizeType sizeInBytes, const SizeTy
     {
         result = reinterpret_cast<UInt8*>(arena) + prePushPosition;
         arena->position = postPushPosition;
-        Memory_Zero(result, size_to_zero);
+        Memory_Zero(result, sizeToZero);
     }
 
     Assert(result != nullptr, "Could not push to arena");
