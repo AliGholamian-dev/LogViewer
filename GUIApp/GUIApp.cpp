@@ -7,8 +7,8 @@ internal void EntryPoint_Main_InitApplication(void)
 internal void EntryPoint_Main_RunApplication(void)
 {
     /// TODO:
-    {
-        /// TODO: Loop
-    }
+    GUIApp_Init();
+    GUIApp_Run();
+    /// TODO:
     WindowManager_DeInit();
 }

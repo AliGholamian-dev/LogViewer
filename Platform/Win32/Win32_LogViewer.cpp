@@ -57,3 +57,4 @@
 #include "GUIApp/GUIApp.cpp"
 
 /// LogViewer layer
+#include "LogViewer/LogViewer.cpp"
