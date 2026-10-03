@@ -26,7 +26,7 @@ template <SizeType N>
 constexpr const String8 String8_CreateFromLiteral(const char (&literal)[N])
 {
     char* nonConstLiteral { const_cast<char*>(literal) };
-    return String8_Create(static_cast<UInt8*>(nonConstLiteral), N - 1);
+    return String8_Create(reinterpret_cast<UInt8*>(nonConstLiteral), N - 1);
 }
 
 internal String16 String16_Create(UInt16* str, const SizeType length);

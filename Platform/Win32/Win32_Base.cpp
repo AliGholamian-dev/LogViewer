@@ -503,6 +503,9 @@ internal void Win32_InitPlatform(void)
         .largePagesAllowed = m_largePagesAllowed && GetLargePageMinimum() > 0
     };
 
+    ThreadContext *threadContext { ThreadContext_Allocate() };
+    ThreadContext_Select(threadContext);
+
     InitializeCriticalSection(&g_win32PlatformState.entityMutex);
     {
         const ArenaParams entityArenaParams
@@ -515,9 +518,6 @@ internal void Win32_InitPlatform(void)
         g_win32PlatformState.entityArena = Arena_Allocate(&entityArenaParams);
     }
     g_win32PlatformState.firstFreeEntity = nullptr;
-
-    ThreadContext *threadContext { ThreadContext_Allocate() };
-    ThreadContext_Select(threadContext);
 }
 
 internal void Win32_DeInitPlatform(void)

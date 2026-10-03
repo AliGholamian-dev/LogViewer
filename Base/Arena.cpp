@@ -33,7 +33,6 @@ internal Arena *Arena_Allocate(const ArenaParams* params)
         }
     }
 
-    /// TODO: Turn into platform based popup show or shell report
     Assert(base != nullptr, "Could not reserve memory for arena");
     
     Arena *arena = reinterpret_cast<Arena*>(base);

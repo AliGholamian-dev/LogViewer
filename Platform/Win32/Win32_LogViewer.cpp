@@ -6,6 +6,7 @@
 #include <limits>
 #include <ratio>
 #include <utility>
+#include <atomic>
 #pragma warning(push, 0)
     #pragma warning(disable: 5039)
     #pragma warning(disable: 4865)
@@ -24,6 +25,7 @@
 #include "Base/OSDetection.hpp"
 #include "Base/Keywords.hpp"
 #include "Base/BasicDataTypes.hpp"
+#include "Base/Atomic.hpp"
 #include "Base/Flags.hpp"
 #include "Base/Algorithm.hpp"
 #include "Base/Math.hpp"
