@@ -18,6 +18,9 @@
     #include <shellapi.h>
 #pragma warning(pop)
 
+#define NEED_ASYNC 1
+#define NEED_MAIN_WINDOW 0
+
 /// Base layer
 #include "Base/CompilerDetection.hpp"
 #include "Base/LanguageDetection.hpp"

@@ -31,6 +31,7 @@ struct Win32Entity
 struct Win32PlatformState
 {
     SystemInfo systemInfo;
+    SInt64 microsecondResolution;
     CRITICAL_SECTION entityMutex;
     Arena *entityArena;
     Win32Entity* firstFreeEntity;
@@ -88,6 +89,23 @@ internal void Memory_Zero(void *ptr, const SizeType sizeInBytes)
 internal void Memory_Copy(void *destination, const void *source, const SizeType sizeInBytes)
 {
     memcpy(destination, source, sizeInBytes);
+}
+
+TimestampClock::TimePointType TimestampClock::Now()
+{
+    SInt64 result { 0 };
+    LARGE_INTEGER largeIntCounter;
+    if(QueryPerformanceCounter(&largeIntCounter))
+    {
+        result = (largeIntCounter.QuadPart * 1000000) / g_win32PlatformState.microsecondResolution;
+    }
+    return TimestampClock::TimePointType
+    { 
+        .since = MicroSeconds
+        { 
+            .value = result 
+        }
+    };
 }
 
 internal Win32Entity *Win32_AllocateEntity(Win32EntityKind entityKind)
@@ -153,13 +171,13 @@ internal Bool8 Thread_Join(Thread thread, const MilliSeconds waitTimeInMilliSeco
     if(entity != nullptr)
     {
         DWORD waitTime { 0 };
-        if(waitTimeInMilliSeconds.value == GetHighestNumericLimitOf<MilliSeconds::Representation>())
+        if(waitTimeInMilliSeconds.value == GetHighestNumericLimitOf<MilliSeconds::RepresentationType>())
         {
             waitTime = INFINITE;
         }
         else if (waitTimeInMilliSeconds.value > 0)
         {
-            waitTime = SafeCast<MilliSeconds::Representation, DWORD>(waitTimeInMilliSeconds.value);
+            waitTime = SafeCast<MilliSeconds::RepresentationType, DWORD>(waitTimeInMilliSeconds.value);
         }
         waitResult = WaitForSingleObject(entity->thread.handle, waitTime);
         CloseHandle(entity->thread.handle);
@@ -323,13 +341,13 @@ internal void CondVar_Release(CondVar condVar)
 internal Bool8 CondVar_Wait(CondVar condVar, Mutex mutex, const MilliSeconds waitTimeInMilliSeconds)
 {
     DWORD waitTime { 0 };
-    if(waitTimeInMilliSeconds.value == GetHighestNumericLimitOf<MilliSeconds::Representation>())
+    if(waitTimeInMilliSeconds.value == GetHighestNumericLimitOf<MilliSeconds::RepresentationType>())
     {
         waitTime = INFINITE;
     }
     else if (waitTimeInMilliSeconds.value > 0)
     {
-        waitTime = SafeCast<MilliSeconds::Representation, DWORD>(waitTimeInMilliSeconds.value);
+        waitTime = SafeCast<MilliSeconds::RepresentationType, DWORD>(waitTimeInMilliSeconds.value);
     }
     Bool8 result { false };
     if(waitTime > 0)
@@ -346,13 +364,13 @@ internal Bool8 CondVar_Wait(CondVar condVar, Mutex mutex, const MilliSeconds wai
 internal Bool8 CondVar_Wait_RW(CondVar condVar, RWMutex rwMutex, const Bool8 isWriteMode, const MilliSeconds waitTimeInMilliSeconds)
 {
     DWORD waitTime { 0 };
-    if(waitTimeInMilliSeconds.value == GetHighestNumericLimitOf<MilliSeconds::Representation>())
+    if(waitTimeInMilliSeconds.value == GetHighestNumericLimitOf<MilliSeconds::RepresentationType>())
     {
         waitTime = INFINITE;
     }
     else if (waitTimeInMilliSeconds.value > 0)
     {
-        waitTime = SafeCast<MilliSeconds::Representation, DWORD>(waitTimeInMilliSeconds.value);
+        waitTime = SafeCast<MilliSeconds::RepresentationType, DWORD>(waitTimeInMilliSeconds.value);
     }
     Bool8 result { false };
     if(waitTime > 0)
@@ -422,13 +440,13 @@ internal Bool8 Semaphore_Take(Semaphore semaphore, const MilliSeconds waitTimeIn
 {
 
     DWORD waitTime { 0 };
-    if(waitTimeInMilliSeconds.value == GetHighestNumericLimitOf<MilliSeconds::Representation>())
+    if(waitTimeInMilliSeconds.value == GetHighestNumericLimitOf<MilliSeconds::RepresentationType>())
     {
         waitTime = INFINITE;
     }
     else if (waitTimeInMilliSeconds.value > 0)
     {
-        waitTime = SafeCast<MilliSeconds::Representation, DWORD>(waitTimeInMilliSeconds.value);
+        waitTime = SafeCast<MilliSeconds::RepresentationType, DWORD>(waitTimeInMilliSeconds.value);
     }
     HANDLE handle { static_cast<HANDLE>(semaphore.impl) };
     DWORD waitResult { WaitForSingleObject(handle, waitTime) };
@@ -494,6 +512,16 @@ internal void Win32_InitPlatform(void)
 
     SYSTEM_INFO win32Systeminfo {};
     GetSystemInfo(&win32Systeminfo);
+
+    {
+        g_win32PlatformState.microsecondResolution  = 1;
+        LARGE_INTEGER largeIntResolution;
+        if(QueryPerformanceFrequency(&largeIntResolution))
+        {
+            g_win32PlatformState.microsecondResolution = largeIntResolution.QuadPart;
+        }
+    }
+
     g_win32PlatformState.systemInfo = SystemInfo
     {
         .logicalProcessorCount = SafeCast<DWORD, UInt64>(win32Systeminfo.dwNumberOfProcessors),

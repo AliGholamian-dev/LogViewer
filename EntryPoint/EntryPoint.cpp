@@ -4,6 +4,10 @@ global Mutex g_asyncTickStopMutex { };
 global Bool32 g_asyncLoopAgain { false };
 global Bool32 g_asyncExit { false };
 
+#if !defined(NEED_ASYNC)
+    #define NEED_ASYNC 0
+#endif
+
 internal void EntryPoint_Async_RequestUpdate(void)
 {
     const Bool32 prevValue { Atomic_EvalAndAssign<Bool32>(&g_asyncLoopAgain, true) };
@@ -55,40 +59,43 @@ internal void EntryPoint_CallMainThreadEntryPoint(void)
     g_asyncTickStartMutex = Mutex_Allocate();
     g_asyncTickStopMutex = Mutex_Allocate();
 
-
-    Thread *asyncThreads { nullptr };
-    UInt64 asyncThreadCount { 0 };
-    UInt64 laneBroadcastValue { 0 };
-    {
-        local_persist constexpr UInt64 mainThreadCount { 1 };
-        asyncThreadCount = SystemInfo_Get()->logicalProcessorCount;
-        const UInt64 clampedMainThreadCount { MinOf<UInt64>(asyncThreadCount, mainThreadCount) };
-        asyncThreadCount -= clampedMainThreadCount;
-        asyncThreadCount = MaxOf<UInt64>(1, asyncThreadCount);
-        Barrier barrier { Barrier_Allocate(asyncThreadCount) };
-        LaneContext *laneContext = Arena_PushArrayAndZero<LaneContext>(scratchArena.arena, asyncThreadCount);
-        asyncThreads = Arena_PushArrayAndZero<Thread>(scratchArena.arena, asyncThreadCount);
-        for(SizeType i {0}; i < asyncThreadCount; ++i)
+    #if NEED_ASYNC
+        Thread *asyncThreads { nullptr };
+        UInt64 asyncThreadCount { 0 };
+        UInt64 laneBroadcastValue { 0 };
         {
-            laneContext[i].laneIndex = i;
-            laneContext[i].laneCount = asyncThreadCount;
-            laneContext[i].barrier = barrier;
-            laneContext[i].broadcastMemory = &laneBroadcastValue;
-            asyncThreads[i] = Thread_Launch(EntryPoint_Async_Enter, &laneContext[i]);
+            local_persist constexpr UInt64 mainThreadCount { 1 };
+            asyncThreadCount = SystemInfo_Get()->logicalProcessorCount;
+            const UInt64 clampedMainThreadCount { MinOf<UInt64>(asyncThreadCount, mainThreadCount) };
+            asyncThreadCount -= clampedMainThreadCount;
+            asyncThreadCount = MaxOf<UInt64>(1, asyncThreadCount);
+            Barrier barrier { Barrier_Allocate(asyncThreadCount) };
+            LaneContext *laneContext = Arena_PushArrayAndZero<LaneContext>(scratchArena.arena, asyncThreadCount);
+            asyncThreads = Arena_PushArrayAndZero<Thread>(scratchArena.arena, asyncThreadCount);
+            for(SizeType i {0}; i < asyncThreadCount; ++i)
+            {
+                laneContext[i].laneIndex = i;
+                laneContext[i].laneCount = asyncThreadCount;
+                laneContext[i].barrier = barrier;
+                laneContext[i].broadcastMemory = &laneBroadcastValue;
+                asyncThreads[i] = Thread_Launch(EntryPoint_Async_Enter, &laneContext[i]);
+            }
         }
-    }
+    #endif
 
     EntryPoint_Main_InitApplication();
     EntryPoint_Main_RunApplication();
 
-    Atomic_EvalAndAssign<Bool32>(&g_asyncExit, true);
-    Atomic_EvalAndAssign<Bool32>(&g_asyncLoopAgain, true);
-    CondVar_Broadcast(g_asyncTickStartVondVar);
-    for(SizeType i {0}; i < asyncThreadCount; ++i)
-    {
-        const MilliSeconds waitTime { .value = GetHighestNumericLimitOf<MilliSeconds::Representation>() };
-        Thread_Join(asyncThreads[i], waitTime);
-    }
-    
+    #if NEED_ASYNC
+        Atomic_EvalAndAssign<Bool32>(&g_asyncExit, true);
+        Atomic_EvalAndAssign<Bool32>(&g_asyncLoopAgain, true);
+        CondVar_Broadcast(g_asyncTickStartVondVar);
+        for(SizeType i {0}; i < asyncThreadCount; ++i)
+        {
+            const MilliSeconds waitTime { .value = GetHighestNumericLimitOf<MilliSeconds::RepresentationType>() };
+            Thread_Join(asyncThreads[i], waitTime);
+        }
+    #endif
+
     ThreadContext_EndScratchArena(scratchArena);
 }
