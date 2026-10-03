@@ -72,7 +72,7 @@ internal Bool8 Semaphore_Take(Semaphore semaphore, const MilliSeconds waitTimeIn
 internal void Semaphore_Drop(Semaphore semaphore);
 internal void Semaphore_DropCount(Semaphore semaphore, const UInt32 dropCount);
 
-internal Barrier Barrier_Allocate(UInt64 count);
+internal Barrier Barrier_Allocate(const UInt64 count);
 internal void Barrier_Release(Barrier barrier);
 internal void Barrier_Wait(Barrier barrier);
 

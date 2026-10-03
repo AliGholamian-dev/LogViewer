@@ -441,7 +441,7 @@ internal void Semaphore_DropCount(Semaphore semaphore, const UInt32 dropCount)
     ReleaseSemaphore(handle, SafeCast<UInt32, LONG>(dropCount), 0);
 }
 
-internal Barrier Barrier_Allocate(UInt64 count)
+internal Barrier Barrier_Allocate(const UInt64 count)
 {
     Barrier result {0};
     Win32Entity *entity { Win32_AllocateEntity(Win32EntityKind::Barrier) };
