@@ -1,6 +1,12 @@
 #ifndef BASE_KEYWORDS_HPP
 #define BASE_KEYWORDS_HPP
 
+#define Stringify_(S) #S
+#define Stringify(S) Stringify_(S)
+
+#define Glue_(A,B) A##B
+#define Glue(A,B) Glue_(A,B)
+
 #define internal      static
 #define global        static 
 #define local_persist static
@@ -53,6 +59,9 @@
 
 #define InvalidCodePath() Assert(false, "InvalidCodePath")
 #define NotImplemented()  Assert(false, "NotImplemented")
+
+/// TODO: If needed add depth/ID
+#define DeferLoop(begin, end) for(int Glue(_DeferLoopCounter_, __LINE__) = ((begin), 0); !Glue(_DeferLoopCounter_, __LINE__); Glue(_DeferLoopCounter_, __LINE__) += 1, (end))
 
 template <typename... Ts>
 constexpr void Unused(Ts&&...)

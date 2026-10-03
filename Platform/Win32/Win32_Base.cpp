@@ -1,7 +1,11 @@
 enum class Win32EntityKind
 {
     Free,
-    Thread
+    Thread,
+    Mutex,
+    RWMutex,
+    CondVar,
+    Barrier
 };
 
 struct Win32Entity
@@ -9,10 +13,7 @@ struct Win32Entity
     Win32EntityKind kind;
     union
     {
-        struct
-        {
-            Win32Entity* nextFree;
-        } freeData;
+        Win32Entity* nextFree;
         struct
         {
             ThreadEntryPointFunctionType *entryPointFunction;
@@ -20,6 +21,10 @@ struct Win32Entity
             HANDLE handle;
             DWORD id;
         } thread;
+        CRITICAL_SECTION mutex;
+        SRWLOCK rwMutex;
+        CONDITION_VARIABLE condVar;
+        SYNCHRONIZATION_BARRIER synchBarrier;
     };
 };
 
@@ -94,7 +99,7 @@ internal Win32Entity *Win32_AllocateEntity(Win32EntityKind entityKind)
         if(win32Entity != nullptr)
         {
             Assert(win32Entity->kind == Win32EntityKind::Free, "Free Win32Entity does not have Free kind as tag");
-            g_win32PlatformState.firstFreeEntity = g_win32PlatformState.firstFreeEntity->freeData.nextFree;
+            g_win32PlatformState.firstFreeEntity = g_win32PlatformState.firstFreeEntity->nextFree;
         }
         else
         {
@@ -114,7 +119,7 @@ internal void Win32_ReleaseEntity(Win32Entity *entity)
     Assert(entity != nullptr, "Null Win32Entity");
     entity->kind = Win32EntityKind::Free;
     EnterCriticalSection(&g_win32PlatformState.entityMutex);
-    entity->freeData.nextFree = g_win32PlatformState.firstFreeEntity;
+    entity->nextFree = g_win32PlatformState.firstFreeEntity;
     g_win32PlatformState.firstFreeEntity = entity;
     LeaveCriticalSection(&g_win32PlatformState.entityMutex);
 }
@@ -173,6 +178,294 @@ internal void Thread_Detach(Thread thread)
         CloseHandle(entity->thread.handle);
         Win32_ReleaseEntity(entity);
     }
+}
+
+internal UInt32 Thread_GetID(void)
+{
+  return GetCurrentThreadId(); 
+}
+
+internal void Thread_SetName(const String8 name)
+{
+    TempArena scratchArena{ ThreadContext_BeginScratchArena(nullptr, 0) };
+
+    {
+        const String16 name16{ String16_CreateFromString8(scratchArena.arena, name) };
+        HRESULT hr { SetThreadDescription(GetCurrentThread(), (PCWSTR)name16.str) };
+        Unused(hr);
+    }
+
+    {
+        String8 nameCopy { String8_Copy(scratchArena.arena, name) };
+        #pragma pack(push, 8)
+                struct THREADNAME_INFO
+                {
+                    UInt32 dwType;     // Must be 0x1000.
+                    char *szName;      // Pointer to name (in user addr space).
+                    UInt32 dwThreadID; // Thread ID (-1=caller thread).
+                    UInt32 dwFlags;    // Reserved for future use, must be zero.
+                };
+        #pragma pack(pop)
+        THREADNAME_INFO info {};
+        info.dwType = 0x1000;
+        info.szName = (char *)nameCopy.str;
+        info.dwThreadID = Thread_GetID();
+        info.dwFlags = 0;
+        #pragma warning(push)
+        #pragma warning(disable : 6320 6322)
+                __try
+                {
+                    RaiseException(0x406D1388, 0, sizeof(info) / sizeof(void *), (const ULONG_PTR *)&info);
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                }
+        #pragma warning(pop)
+    }
+
+    ThreadContext_EndScratchArena(scratchArena);
+}
+
+internal Mutex Mutex_Allocate(void)
+{
+    Win32Entity *entity { Win32_AllocateEntity(Win32EntityKind::Mutex) };
+    InitializeCriticalSection(&entity->mutex);
+    return Mutex
+    {
+        .impl = entity
+    };
+}
+
+internal void Mutex_Release(Mutex mutex)
+{
+    Win32Entity *entity { static_cast<Win32Entity*>(mutex.impl) };
+    Assert(entity != nullptr, "Null Win32Entity of mutex kind");
+    DeleteCriticalSection(&entity->mutex);
+    Win32_ReleaseEntity(entity);
+}
+
+internal void Mutex_Take(Mutex mutex)
+{
+    Win32Entity *entity { static_cast<Win32Entity*>(mutex.impl) };
+    Assert(entity != nullptr, "Null Win32Entity of mutex kind");
+    EnterCriticalSection(&entity->mutex);
+}
+
+internal void Mutex_Drop(Mutex mutex)
+{
+    Win32Entity *entity { static_cast<Win32Entity*>(mutex.impl) };
+    Assert(entity != nullptr, "Null Win32Entity of mutex kind");
+    LeaveCriticalSection(&entity->mutex);
+}
+
+internal RWMutex RWMutex_Allocate(void)
+{
+    Win32Entity *entity { Win32_AllocateEntity(Win32EntityKind::RWMutex) };
+    InitializeSRWLock(&entity->rwMutex);
+    return RWMutex
+    {
+        .impl = entity
+    };
+}
+
+internal void RWMutex_Release(RWMutex rwMutex)
+{
+    Win32Entity *entity { static_cast<Win32Entity*>(rwMutex.impl) };
+    Assert(entity != nullptr, "Null Win32Entity of rw mutex kind");
+    Win32_ReleaseEntity(entity);
+}
+
+internal void RWMutex_Take(RWMutex rwMutex, const Bool8 isWriteMode)
+{
+    Win32Entity *entity{ static_cast<Win32Entity *>(rwMutex.impl) };
+    Assert(entity != nullptr, "Null Win32Entity of rw mutex kind");
+    if (isWriteMode)
+    {
+        AcquireSRWLockExclusive(&entity->rwMutex);
+    }
+    else
+    {
+        AcquireSRWLockShared(&entity->rwMutex);
+    }
+}
+
+internal void RWMutex_Drop(RWMutex rwMutex, const Bool8 isWritemode)
+{
+    Win32Entity *entity{ static_cast<Win32Entity *>(rwMutex.impl) };
+    Assert(entity != nullptr, "Null Win32Entity of rw mutex kind");
+    if (isWritemode)
+    {
+        ReleaseSRWLockExclusive(&entity->rwMutex);
+    }
+    else
+    {
+        ReleaseSRWLockShared(&entity->rwMutex);
+    }
+}
+
+internal CondVar CondVar_Allocate(void)
+{
+    Win32Entity *entity { Win32_AllocateEntity(Win32EntityKind::CondVar) };
+    InitializeConditionVariable(&entity->condVar);
+    return CondVar
+    {
+        .impl = entity  
+    };
+}
+
+internal void CondVar_Release(CondVar condVar)
+{
+    Win32Entity *entity { static_cast<Win32Entity*>(condVar.impl) };
+    Assert(entity != nullptr, "Null Win32Entity of cond var kind");
+    Win32_ReleaseEntity(entity);
+}
+
+internal Bool8 CondVar_Wait(CondVar condVar, Mutex mutex, const MilliSeconds waitTimeInMilliSeconds)
+{
+    DWORD waitTime { 0 };
+    if(waitTimeInMilliSeconds.value == GetHighestNumericLimitOf<MilliSeconds::Representation>())
+    {
+        waitTime = INFINITE;
+    }
+    else if (waitTimeInMilliSeconds.value > 0)
+    {
+        waitTime = SafeCast<MilliSeconds::Representation, DWORD>(waitTimeInMilliSeconds.value);
+    }
+    Bool8 result { false };
+    if(waitTime > 0)
+    {
+        Win32Entity *condVarEntity { static_cast<Win32Entity*>(condVar.impl) };
+        Win32Entity *mutexEntity { static_cast<Win32Entity*>(mutex.impl) };
+        Assert(condVarEntity != nullptr, "Null Win32Entity of cond var kind");
+        Assert(mutexEntity != nullptr, "Null Win32Entity of mutex kind");
+        result = SleepConditionVariableCS(&condVarEntity->condVar, &mutexEntity->mutex, waitTime);
+    }
+    return result;
+}
+
+internal Bool8 CondVar_Wait_RW(CondVar condVar, RWMutex rwMutex, const Bool8 isWriteMode, const MilliSeconds waitTimeInMilliSeconds)
+{
+    DWORD waitTime { 0 };
+    if(waitTimeInMilliSeconds.value == GetHighestNumericLimitOf<MilliSeconds::Representation>())
+    {
+        waitTime = INFINITE;
+    }
+    else if (waitTimeInMilliSeconds.value > 0)
+    {
+        waitTime = SafeCast<MilliSeconds::Representation, DWORD>(waitTimeInMilliSeconds.value);
+    }
+    Bool8 result { false };
+    if(waitTime > 0)
+    {
+        Win32Entity *condVarEntity { static_cast<Win32Entity*>(condVar.impl) };
+        Win32Entity *rwMutexEntity { static_cast<Win32Entity*>(rwMutex.impl) };
+        Assert(condVarEntity != nullptr, "Null Win32Entity of cond var kind");
+        Assert(rwMutexEntity != nullptr, "Null Win32Entity of rw mutex kind");
+        result = SleepConditionVariableSRW(&condVarEntity->condVar, &rwMutexEntity->rwMutex, waitTime, isWriteMode ? 0 : CONDITION_VARIABLE_LOCKMODE_SHARED);
+    }
+    return result;
+}
+
+internal void CondVar_Signal(CondVar condVar)
+{
+    Win32Entity *entity { static_cast<Win32Entity*>(condVar.impl) };
+    Assert(entity != nullptr, "Null Win32Entity of cond var kind");
+    WakeConditionVariable(&entity->condVar);
+}
+
+internal void CondVar_Broadcast(CondVar condVar)
+{
+    Win32Entity *entity { static_cast<Win32Entity*>(condVar.impl) };
+    Assert(entity != nullptr, "Null Win32Entity of cond var kind");
+    WakeAllConditionVariable(&entity->condVar);
+}
+
+internal Semaphore Semaphore_Allocate(const UInt32 initialCount, const UInt32 maxCount, const String8 name)
+{
+    TempArena scratchArena{ ThreadContext_BeginScratchArena(nullptr, 0) };
+    const String16 name16{ String16_CreateFromString8(scratchArena.arena, name) };
+    HANDLE handle { CreateSemaphore(0, SafeCast<UInt32, LONG>(initialCount), SafeCast<UInt32, LONG>(maxCount), (LPCWSTR)name16.str) };
+    Semaphore semaphore 
+    {
+        .impl = handle
+    };
+    ThreadContext_EndScratchArena(scratchArena);
+    return semaphore;
+}
+
+internal Semaphore Semaphore_Open(const String8 name)
+{
+    TempArena scratchArena{ ThreadContext_BeginScratchArena(nullptr, 0) };
+    const String16 name16{ String16_CreateFromString8(scratchArena.arena, name) };
+    HANDLE handle { OpenSemaphore(SEMAPHORE_ALL_ACCESS, 0, (LPCWSTR)name16.str) };
+    Semaphore semaphore 
+    {
+        .impl = handle
+    };
+    ThreadContext_EndScratchArena(scratchArena);
+    return semaphore;
+}
+
+internal void Semaphore_Release(Semaphore semaphore)
+{
+    HANDLE handle { static_cast<HANDLE>(semaphore.impl) };
+    CloseHandle(handle);
+}
+
+internal void Semaphore_Close(Semaphore semaphore)
+{
+    HANDLE handle { static_cast<HANDLE>(semaphore.impl) };
+    CloseHandle(handle);
+}
+
+internal Bool8 Semaphore_Take(Semaphore semaphore, const MilliSeconds waitTimeInMilliSeconds)
+{
+
+    DWORD waitTime { 0 };
+    if(waitTimeInMilliSeconds.value == GetHighestNumericLimitOf<MilliSeconds::Representation>())
+    {
+        waitTime = INFINITE;
+    }
+    else if (waitTimeInMilliSeconds.value > 0)
+    {
+        waitTime = SafeCast<MilliSeconds::Representation, DWORD>(waitTimeInMilliSeconds.value);
+    }
+    HANDLE handle { static_cast<HANDLE>(semaphore.impl) };
+    DWORD waitResult { WaitForSingleObject(handle, waitTime) };
+    return (waitResult == WAIT_OBJECT_0);
+}
+
+internal void Semaphore_DropCount(Semaphore semaphore, const UInt32 dropCount)
+{
+    HANDLE handle { static_cast<HANDLE>(semaphore.impl) };
+    ReleaseSemaphore(handle, SafeCast<UInt32, LONG>(dropCount), 0);
+}
+
+internal Barrier Barrier_Allocate(UInt64 count)
+{
+    Barrier result {0};
+    Win32Entity *entity { Win32_AllocateEntity(Win32EntityKind::Barrier) };
+    BOOL initWasGood { InitializeSynchronizationBarrier(&entity->synchBarrier, SafeCast<UInt64, LONG>(count), -1) };
+    Unused(initWasGood);
+    return Barrier
+    {
+        .impl = entity
+    };
+}
+
+internal void Barrier_Release(Barrier barrier)
+{
+    Win32Entity *entity { static_cast<Win32Entity*>(barrier.impl) };
+    Assert(entity != nullptr, "Null Win32Entity of barrier kind");
+    DeleteSynchronizationBarrier(&entity->synchBarrier);
+    Win32_ReleaseEntity(entity);
+}
+
+internal void Barrier_Wait(Barrier barrier)
+{
+    Win32Entity *entity { static_cast<Win32Entity*>(barrier.impl) };
+    Assert(entity != nullptr, "Null Win32Entity of barrier kind");
+    EnterSynchronizationBarrier(&entity->synchBarrier, 0);
 }
 
 internal void Win32_InitPlatform(void)

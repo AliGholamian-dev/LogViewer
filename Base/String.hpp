@@ -7,6 +7,18 @@ struct String8
     SizeType length;
 };
 
+struct String16
+{
+    UInt16* str;
+    SizeType length;
+};
+
+struct UnicodeDecode
+{
+    UInt32 inc;
+    UInt32 codepoint;
+};
+
 internal String8 String8_Create(UInt8* str, const SizeType length);
 internal String8 String8_Copy(Arena* arena, const String8 stringToCopyFrom);
 
@@ -17,20 +29,8 @@ constexpr const String8 String8_CreateFromLiteral(const char (&literal)[N])
     return String8_Create(static_cast<UInt8*>(nonConstLiteral), N - 1);
 }
 
-struct String16
-{
-    UInt16* str;
-    SizeType length;
-};
-
 internal String16 String16_Create(UInt16* str, const SizeType length);
 internal String16 String16_CreateFromString8(Arena *arena, String8 string8);
-
-struct UnicodeDecode
-{
-    UInt32 inc;
-    UInt32 codepoint;
-};
 
 internal UnicodeDecode UTF8_Decode(UInt8 *str, SizeType max);
 internal UnicodeDecode UTF16_Decode(UInt16 *str, SizeType max);

@@ -102,7 +102,7 @@ internal WM_Window WindowManager_OpenWindow(const Position2D<SInt32> position, c
         const String16 title16 { String16_CreateFromString8(scratchArena.arena, title) };
         hwnd = CreateWindowEx(WS_EX_APPWINDOW, 
             g_win32WindowManagerState.windowClassName, 
-            (WCHAR*)title16.str,
+            (LPCWSTR)title16.str,
             WS_OVERLAPPEDWINDOW | WS_SIZEBOX, /// TODO: 
             position.x,
             position.y,
