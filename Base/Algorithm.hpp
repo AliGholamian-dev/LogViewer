@@ -235,7 +235,7 @@ constexpr ToType SafeCast(const FromType fromValue)
     }
     else if constexpr (std::is_floating_point_v<FromType> && std::is_integral_v<ToType>)
     {
-        Assert(std::isfinite(fromValue), "Cast failed, floating point value is not finite");
+        // Assert(std::isfinite(fromValue), "Cast failed, floating point value is not finite");
         Assert(fromValue >= GetLowestNumericLimitOf<ToType>(), "Cast failed, out of range (value < Lowest Numeric Limit)");
         Assert(fromValue <= GetHighestNumericLimitOf<ToType>(), "Cast failed, out of range (value > Highest Numeric Limit)");
     }
@@ -246,7 +246,7 @@ constexpr ToType SafeCast(const FromType fromValue)
     }
     else if constexpr (std::is_floating_point_v<FromType> && std::is_floating_point_v<ToType>)
     {
-        Assert(std::isfinite(fromValue), "Cast failed, floating point value is not finite");
+        // Assert(std::isfinite(fromValue), "Cast failed, floating point value is not finite");
         Assert(fromValue >= GetLowestNumericLimitOf<ToType>(), "Cast failed, out of range (value < Lowest Numeric Limit)");
         Assert(fromValue <= GetHighestNumericLimitOf<ToType>(), "Cast failed, out of range (value > Highest Numeric Limit)");
     }

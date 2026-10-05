@@ -1,19 +1,16 @@
-#ifndef BASE_ATOMIMC_HPP
-#define BASE_ATOMIMC_HPP
-
-template <typename T>
-concept AlwaysFalse = false;
+#ifndef BASE_ATOMIC_HPP
+#define BASE_ATOMIC_HPP
 
 template<typename T>
-inline T Atomic_Eval(const T* atomicVar)
-{
-    return std::atomic_ref<const T>(*atomicVar).load(std::memory_order_seq_cst);
-}
+T Atomic_Eval(const volatile T* value);
 
 template<typename T>
-inline T Atomic_EvalAndAssign(T* atomicVar, T newValue)
-{
-    return std::atomic_ref<T>(*atomicVar).exchange(newValue, std::memory_order_seq_cst);
-}
+T Atomic_EvalAndAssign(volatile T* value, T newValue);
 
-#endif // BASE_ATOMIMC_HPP
+template<>
+Bool8 Atomic_Eval<Bool8>(const volatile Bool8* value);
+
+template<>
+Bool8 Atomic_EvalAndAssign<Bool8>(volatile Bool8* value, Bool8 newValue);
+
+#endif // BASE_ATOMIC_HPP

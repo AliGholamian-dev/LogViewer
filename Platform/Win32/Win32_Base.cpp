@@ -39,6 +39,18 @@ struct Win32PlatformState
 
 global Win32PlatformState g_win32PlatformState {};
 
+template<>
+Bool8 Atomic_Eval<Bool8>(const volatile Bool8* value)
+{
+    return static_cast<Bool8>(__iso_volatile_load8(reinterpret_cast<const volatile char*>(value)));
+}
+
+template<>
+Bool8 Atomic_EvalAndAssign<Bool8>(volatile Bool8* value, Bool8 newValue)
+{
+    return static_cast<Bool8>(_InterlockedExchange8(reinterpret_cast<volatile char*>(value), static_cast<char>(newValue)));
+}
+
 internal SystemInfo *SystemInfo_Get(void)
 {
     return &g_win32PlatformState.systemInfo;

@@ -29,7 +29,7 @@ internal WM_Window Win32_WindowManger_GetWindowFromWin32Window(Win32WindowManger
     };
 }
 
-internal Win32WindowMangerWindow *Win32_WindowManger_GetWin32WindowFromHWND(HWND hwnd)
+internal Win32WindowMangerWindow *Win32_WindowManger_GetWin32WindowFromHWND(HWND)
 {
   Win32WindowMangerWindow *win32Window { nullptr };
   /// TODO:
@@ -108,13 +108,13 @@ internal LRESULT CALLBACK Win32_WindowManager_WindowProcedure(HWND hwnd, UINT uM
     {
         Win32WindowMangerWindow *win32Window { Win32_WindowManger_GetWin32WindowFromHWND(hwnd) };
         WM_Window window { Win32_WindowManger_GetWindowFromWin32Window(win32Window) };
-        switch (uMsg)
-        {
-            default:
-            {
-                result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
-            } break;
-        }
+        // switch (uMsg)
+        // {
+        //     default:
+        //     {
+        //         result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
+        //     } break;
+        // }
     }
 
     return result;

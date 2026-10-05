@@ -5,8 +5,6 @@
 #include <type_traits>
 #include <limits>
 #include <ratio>
-#include <utility>
-#include <atomic>
 #pragma warning(push, 0)
     #pragma warning(disable: 5039)
     #pragma warning(disable: 4865)

@@ -1,6 +1,7 @@
 #ifndef BASE_BASIC_DATA_TYPES_HPP
 #define BASE_BASIC_DATA_TYPES_HPP
 
+/// TODO: Move away from crt and std library
 using UInt8       = std::uint8_t;
 using UInt16      = std::uint16_t;
 using UInt32      = std::uint32_t;

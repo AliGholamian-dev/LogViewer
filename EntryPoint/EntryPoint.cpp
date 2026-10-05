@@ -1,8 +1,8 @@
 global CondVar g_asyncTickStartVondVar { };
 global Mutex g_asyncTickStartMutex { };
 global Mutex g_asyncTickStopMutex { };
-global Bool32 g_asyncLoopAgain { false };
-global Bool32 g_asyncExit { false };
+global Bool8 g_asyncLoopAgain { false };
+global Bool8 g_asyncExit { false };
 
 #if !defined(NEED_ASYNC)
     #define NEED_ASYNC 0
@@ -10,7 +10,7 @@ global Bool32 g_asyncExit { false };
 
 internal void EntryPoint_Async_RequestUpdate(void)
 {
-    const Bool32 prevValue { Atomic_EvalAndAssign<Bool32>(&g_asyncLoopAgain, true) };
+    const Bool8 prevValue { Atomic_EvalAndAssign<Bool8>(&g_asyncLoopAgain, true) };
     Unused(prevValue);
 }
 
@@ -19,12 +19,12 @@ internal void EntryPoint_Async_Enter(void *params)
     LaneContext laneContext { *static_cast<LaneContext*>(params) };
     Lane_SetContext(laneContext);
     // ThreadNameF("async_thread_%I64u", lane_idx()); TODO:
-    Bool32 exit { false };
+    Bool8 exit { false };
     while (!exit)
     {
         if (Lane_GetIndex() == 0)
         {
-            if (!Atomic_Eval<Bool32>(&g_asyncLoopAgain))
+            if (!Atomic_Eval<Bool8>(&g_asyncLoopAgain))
             {
                 MutexScope(g_asyncTickStartMutex)
                 {
@@ -32,7 +32,7 @@ internal void EntryPoint_Async_Enter(void *params)
                     CondVar_Wait(g_asyncTickStartVondVar, g_asyncTickStartMutex, waitTime);
                 }
             }
-            const Bool32 asyncLoopAgainPrevValue { Atomic_EvalAndAssign<Bool32>(&g_asyncLoopAgain, false) };
+            const Bool8 asyncLoopAgainPrevValue { Atomic_EvalAndAssign<Bool8>(&g_asyncLoopAgain, false) };
             Unused(asyncLoopAgainPrevValue);
         }
         Lane_Sync();
@@ -43,7 +43,7 @@ internal void EntryPoint_Async_Enter(void *params)
         
         if (Lane_GetIndex() == 0)
         {
-            exit = Atomic_Eval<Bool32>(&g_asyncExit);
+            exit = Atomic_Eval<Bool8>(&g_asyncExit);
         }
         Lane_SyncAndBroadcastData(&exit, sizeof(exit), 0);
     }
@@ -87,8 +87,8 @@ internal void EntryPoint_CallMainThreadEntryPoint(void)
     EntryPoint_Main_RunApplication();
 
     #if NEED_ASYNC
-        Atomic_EvalAndAssign<Bool32>(&g_asyncExit, true);
-        Atomic_EvalAndAssign<Bool32>(&g_asyncLoopAgain, true);
+        Atomic_EvalAndAssign<Bool8>(&g_asyncExit, true);
+        Atomic_EvalAndAssign<Bool8>(&g_asyncLoopAgain, true);
         CondVar_Broadcast(g_asyncTickStartVondVar);
         for(SizeType i {0}; i < asyncThreadCount; ++i)
         {
