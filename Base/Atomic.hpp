@@ -1,6 +1,9 @@
 #ifndef BASE_ATOMIMC_HPP
 #define BASE_ATOMIMC_HPP
 
+template <typename T>
+concept AlwaysFalse = false;
+
 template<typename T>
 inline T Atomic_Eval(const T* atomicVar)
 {

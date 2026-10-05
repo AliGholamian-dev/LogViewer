@@ -22,10 +22,7 @@
 #define NEED_MAIN_WINDOW 0
 
 /// Base layer
-#include "Base/CompilerDetection.hpp"
-#include "Base/LanguageDetection.hpp"
-#include "Base/ArchitectureDetection.hpp"
-#include "Base/OSDetection.hpp"
+#include "Base/ContextDetection.hpp"
 #include "Base/Keywords.hpp"
 #include "Base/BasicDataTypes.hpp"
 #include "Base/Atomic.hpp"

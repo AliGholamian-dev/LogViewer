@@ -208,10 +208,6 @@ constexpr SizeType GB(SizeType value)
     return value << 30;
 }
 
-#include <type_traits>
-#include <limits>
-#include <cmath>
-
 template<typename FromType, typename ToType>
 constexpr ToType SafeCast(const FromType fromValue)
 {
@@ -258,7 +254,8 @@ constexpr ToType SafeCast(const FromType fromValue)
 }
 
 template <typename T, SizeType N>
-constexpr std::size_t ArrayCount(const T (&)[N]) noexcept {
+constexpr std::size_t ArrayCount(const T (&)[N]) noexcept 
+{
     return N;
 }
 
