@@ -1,6 +1,6 @@
-read_only global UInt8 g_utf8Class[32] =
+global constexpr UInt8 g_utf8Class[32]
 {
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,2,2,2,2,3,3,4,5,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 3, 3, 4, 5
 };
 
 internal String8 String8_Create(UInt8* str, const SizeType length)
@@ -35,7 +35,7 @@ internal String16 String16_Create(UInt16* str, const SizeType length)
     };
 }
 
-internal String16 String16_CreateFromString8(Arena *arena, String8 string8)
+internal String16 String16_CreateFromString8(Arena *arena, const String8 string8)
 {
     Assert(arena != nullptr, "Null arena");
 
@@ -46,15 +46,15 @@ internal String16 String16_CreateFromString8(Arena *arena, String8 string8)
         const SizeType string16Capacity { string8.length * 2 };
         str = Arena_PushArray<UInt16>(arena, string16Capacity + 1);
         UInt8 *ptr { string8.str };
-        UInt8 *onePastLast = ptr + string8.length;
-        UnicodeDecode consume;
-        for(;ptr < onePastLast; ptr += consume.inc)
+        const UInt8 *onePastLast { ptr + string8.length };
+        for(UnicodeDecode consume { .inc = 0, .codepoint = 0 };ptr < onePastLast; ptr += consume.inc)
         {
-            consume = UTF8_Decode(ptr, SafeCast<PtrDiffType, SizeType>(onePastLast - ptr));
+            const PtrDiffType absMax { Abs<PtrDiffType>(onePastLast - ptr) };
+            consume = UTF8_Decode(ptr, SafeCast<PtrDiffType, SizeType>(absMax));
             length += UTF16_Encode(str + length, consume.codepoint);
         }
         str[length] = 0;
-        Arena_PopByAmount(arena, (string16Capacity - length)*2);
+        Arena_PopByAmount(arena, (string16Capacity - length) * 2);
     }
     return String16_Create(str, length);
 }
@@ -66,9 +66,9 @@ internal UnicodeDecode UTF8_Decode(UInt8 *str, SizeType max)
         .inc = 1, 
         .codepoint = GetHighestNumericLimitOf<UInt32>() 
     };
-    UInt8 byte = str[0];
-    UInt8 byte_class = g_utf8Class[byte >> 3];
-    switch (byte_class)
+    const UInt8 byte { str[0] };
+    const UInt8 byteClass { g_utf8Class[byte >> 3] };
+    switch (byteClass)
     {
         case 1:
         {
@@ -78,11 +78,11 @@ internal UnicodeDecode UTF8_Decode(UInt8 *str, SizeType max)
         {
             if (1 < max)
             {
-                UInt8 cont_byte = str[1];
-                if (g_utf8Class[cont_byte >> 3] == 0)
+                const UInt8 contByte { str[1] };
+                if (g_utf8Class[contByte >> 3] == 0)
                 {
-                    result.codepoint = (byte & bitmask5) << 6;
-                    result.codepoint |= (cont_byte & bitmask6);
+                    result.codepoint = (byte & BitMask<UInt32, 5>()) << 6;
+                    result.codepoint |= (contByte & BitMask<UInt32, 6>());
                     result.inc = 2;
                 }
             }
@@ -91,13 +91,12 @@ internal UnicodeDecode UTF8_Decode(UInt8 *str, SizeType max)
         {
             if (2 < max)
             {
-                UInt8 cont_byte[2] = {str[1], str[2]};
-                if (g_utf8Class[cont_byte[0] >> 3] == 0 &&
-                    g_utf8Class[cont_byte[1] >> 3] == 0)
+                const UInt8 contBytes[2] {str[1], str[2]};
+                if (g_utf8Class[contBytes[0] >> 3] == 0 && g_utf8Class[contBytes[1] >> 3] == 0)
                 {
-                    result.codepoint = (byte & bitmask4) << 12;
-                    result.codepoint |= ((cont_byte[0] & bitmask6) << 6);
-                    result.codepoint |= (cont_byte[1] & bitmask6);
+                    result.codepoint = (byte & BitMask<UInt32, 4>()) << 12;
+                    result.codepoint |= ((contBytes[0] & BitMask<UInt32, 6>()) << 6);
+                    result.codepoint |= (contBytes[1] & BitMask<UInt32, 6>());
                     result.inc = 3;
                 }
             }
@@ -106,15 +105,13 @@ internal UnicodeDecode UTF8_Decode(UInt8 *str, SizeType max)
         {
             if (3 < max)
             {
-                UInt8 cont_byte[3] = {str[1], str[2], str[3]};
-                if (g_utf8Class[cont_byte[0] >> 3] == 0 &&
-                    g_utf8Class[cont_byte[1] >> 3] == 0 &&
-                    g_utf8Class[cont_byte[2] >> 3] == 0)
+                const UInt8 contBytes[3] {str[1], str[2], str[3]};
+                if (g_utf8Class[contBytes[0] >> 3] == 0 && g_utf8Class[contBytes[1] >> 3] == 0 && g_utf8Class[contBytes[2] >> 3] == 0)
                 {
-                    result.codepoint = (byte & bitmask3) << 18;
-                    result.codepoint |= ((cont_byte[0] & bitmask6) << 12);
-                    result.codepoint |= ((cont_byte[1] & bitmask6) << 6);
-                    result.codepoint |= (cont_byte[2] & bitmask6);
+                    result.codepoint = (byte & BitMask<UInt32, 3>()) << 18;
+                    result.codepoint |= ((contBytes[0] & BitMask<UInt32, 6>()) << 12);
+                    result.codepoint |= ((contBytes[1] & BitMask<UInt32, 6>()) << 6);
+                    result.codepoint |= (contBytes[2] & BitMask<UInt32, 6>());
                     result.inc = 4;
                 }
             }
@@ -123,7 +120,7 @@ internal UnicodeDecode UTF8_Decode(UInt8 *str, SizeType max)
         {
         } break;
     }
-  return result;
+    return result;
 }
 
 internal UnicodeDecode UTF16_Decode(UInt16 *str, SizeType max)
@@ -153,23 +150,23 @@ internal UInt32 UTF8_Encode(UInt8 *str, UInt32 codepoint)
     }
     else if (codepoint <= 0x7FF)
     {
-        str[0] = (bitmask2 << 6) | ((codepoint >> 6) & bitmask5);
-        str[1] = bit8 | (codepoint & bitmask6);
+        str[0] = (BitMask<UInt8, 2>() << 6) | ((codepoint >> 6) & BitMask<UInt8, 5>());
+        str[1] = Bit<UInt8, 8>() | (codepoint & BitMask<UInt8, 6>());
         inc = 2;
     }
     else if (codepoint <= 0xFFFF)
     {
-        str[0] = (bitmask3 << 5) | ((codepoint >> 12) & bitmask4);
-        str[1] = bit8 | ((codepoint >> 6) & bitmask6);
-        str[2] = bit8 | (codepoint & bitmask6);
+        str[0] = (BitMask<UInt8, 3>() << 5) | ((codepoint >> 12) & BitMask<UInt8, 4>());
+        str[1] = Bit<UInt8, 8>() | ((codepoint >> 6) & BitMask<UInt8, 6>());
+        str[2] = Bit<UInt8, 8>() | (codepoint & BitMask<UInt8, 6>());
         inc = 3;
     }
     else if (codepoint <= 0x10FFFF)
     {
-        str[0] = (bitmask4 << 4) | ((codepoint >> 18) & bitmask3);
-        str[1] = bit8 | ((codepoint >> 12) & bitmask6);
-        str[2] = bit8 | ((codepoint >> 6) & bitmask6);
-        str[3] = bit8 | (codepoint & bitmask6);
+        str[0] = (BitMask<UInt8, 4>() << 4) | ((codepoint >> 18) & BitMask<UInt8, 3>());
+        str[1] = Bit<UInt8, 8>() | ((codepoint >> 12) & BitMask<UInt8, 6>());
+        str[2] = Bit<UInt8, 8>() | ((codepoint >> 6) & BitMask<UInt8, 6>());
+        str[3] = Bit<UInt8, 8>() | (codepoint & BitMask<UInt8, 6>());
         inc = 4;
     }
     else
@@ -195,7 +192,7 @@ internal UInt32 UTF16_Encode(UInt16 *str, UInt32 codepoint)
     {
         UInt32 v = codepoint - 0x10000;
         str[0] = SafeCast<UInt32, UInt16>(0xD800 + (v >> 10));
-        str[1] = SafeCast<UInt32, UInt16>(0xDC00 + (v & bitmask10));
+        str[1] = SafeCast<UInt32, UInt16>(0xDC00 + (v & BitMask<UInt16, 10>()));
         inc = 2;
     }
     return inc;

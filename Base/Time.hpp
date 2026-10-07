@@ -1,20 +1,21 @@
 #ifndef BASE_TIME_HPP
 #define BASE_TIME_HPP
 
-template<typename Representation, typename Period>
+/// TODO: Add a template called Period which is a std::ratio for conversion
+template<typename Representation>
 struct TimeDuration
 {
     using RepresentationType = Representation;
-    using PeriodType = Period;
+    // using PeriodType = Period;
     RepresentationType value;
 };
 
-using NanoSeconds  = TimeDuration<SInt64, std::nano>;
-using MicroSeconds = TimeDuration<SInt64, std::micro>;
-using MilliSeconds = TimeDuration<SInt64, std::milli>;
-using Seconds      = TimeDuration<SInt64, std::ratio<1>>;
-using Minutes      = TimeDuration<SInt64, std::ratio<60>>;
-using Hours        = TimeDuration<SInt64, std::ratio<3600>>;
+using NanoSeconds  = TimeDuration<SInt64>;
+using MicroSeconds = TimeDuration<SInt64>;
+using MilliSeconds = TimeDuration<SInt64>;
+using Seconds      = TimeDuration<SInt64>;
+using Minutes      = TimeDuration<SInt64>;
+using Hours        = TimeDuration<SInt64>;
 
 template<typename Clock, typename Duration = typename Clock::DurationType>
 struct TimePoint
@@ -29,8 +30,12 @@ struct TimestampClock
 {
     using DurationType = MicroSeconds;
     using TimePointType = TimePoint<TimestampClock>;
-
-    static TimePointType Now();
 };
+
+template<typename Clock>
+Clock::TimePointType GetNowTime();
+
+template<>
+TimestampClock::TimePointType GetNowTime<TimestampClock>();
 
 #endif // BASE_TIME_HPP

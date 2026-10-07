@@ -1,10 +1,10 @@
+/// TODO: Remove these and get reid of CRT and std lib
 #include <cstddef>
 #include <cstdint>
 #include <cassert>
-#include <concepts>
 #include <type_traits>
+#include <concepts>
 #include <limits>
-#include <ratio>
 #pragma warning(push, 0)
     #pragma warning(disable: 5039)
     #pragma warning(disable: 4865)
@@ -34,27 +34,27 @@
 #include "Base/String.hpp"
 #include "Base/String.cpp"
 #include "Base/Time.hpp"
-#include "Base/Thread.hpp"
-#include "Base/ThreadContext.hpp"
-#include "Base/ThreadContext.cpp"
-#include "Base/Thread.cpp"
+// #include "Base/Thread.hpp"
+// #include "Base/ThreadContext.hpp"
+// #include "Base/ThreadContext.cpp"
+// #include "Base/Thread.cpp"
 
-/// EntryPoint layer
-#include "EntryPoint/EntryPoint.hpp"
-#include "EntryPoint/EntryPoint.cpp"
+// /// EntryPoint layer
+// #include "EntryPoint/EntryPoint.hpp"
+// #include "EntryPoint/EntryPoint.cpp"
 
-/// Service layer
-#include "Service/WindowManager/WindowManager.hpp"
+// /// Service layer
+// #include "Service/WindowManager/WindowManager.hpp"
 
-/// Platform layer
-#include "Platform/Win32/Win32_Base.hpp"
+// /// Platform layer
+// #include "Platform/Win32/Win32_Base.hpp"
 #include "Platform/Win32/Win32_Base.cpp"
 #include "Platform/Win32/Win32_EntryPoint.cpp"
-#include "Platform/Win32/Win32_WindowManager.cpp"
+// #include "Platform/Win32/Win32_WindowManager.cpp"
 
-/// App layer
-#include "GUIApp/GUIApp.hpp"
-#include "GUIApp/GUIApp.cpp"
+// /// App layer
+// #include "GUIApp/GUIApp.hpp"
+// #include "GUIApp/GUIApp.cpp"
 
-/// LogViewer layer
-#include "LogViewer/LogViewer.cpp"
+// /// LogViewer layer
+// #include "LogViewer/LogViewer.cpp"

@@ -1,9 +1,10 @@
 #ifndef BASE_SYSTEM_INFO_HPP
 #define BASE_SYSTEM_INFO_HPP
 
+/// TODO: Reconsider SizeType
 struct SystemInfo
 {
-    UInt64 logicalProcessorCount;
+    SizeType logicalProcessorCount;
     SizeType pageSize;
     SizeType largePageSize;
     SizeType allocationGranularity;

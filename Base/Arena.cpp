@@ -7,10 +7,10 @@ internal Arena *Arena_Allocate(const ArenaParams* params)
     SizeType reserveSizeInBytes { params->reserveSizeInBytes };
     SizeType commitSizeInBytes { params->commitSizeInBytes };
 
-    void *base = params->optionalBackingBuffer;
+    void *base { params->optionalBackingBuffer };
     if (base == nullptr)
     {
-        if (Flag_CheckBitIsSet(params->configFlags, ArenaConfigs::LargePages))
+        if (Flag_CheckBitsAreSet(params->configFlags, ArenaConfigs::LargePages))
         {
             reserveSizeInBytes = AlignUpPow2<SizeType>(reserveSizeInBytes, SystemInfo_Get()->largePageSize);
             commitSizeInBytes = AlignUpPow2<SizeType>(commitSizeInBytes, SystemInfo_Get()->largePageSize);
@@ -21,7 +21,7 @@ internal Arena *Arena_Allocate(const ArenaParams* params)
             commitSizeInBytes = AlignUpPow2<SizeType>(commitSizeInBytes, SystemInfo_Get()->pageSize);
         }
 
-        if (Flag_CheckBitIsSet(params->configFlags, ArenaConfigs::LargePages))
+        if (Flag_CheckBitsAreSet(params->configFlags, ArenaConfigs::LargePages))
         {
             base = Memory_ReserveLarge(reserveSizeInBytes);
             Memory_CommitLarge(base, commitSizeInBytes);
@@ -63,7 +63,7 @@ internal void *Arena_Push(Arena *arena, const SizeType sizeInBytes, const SizeTy
     Assert(arena != nullptr, "Null arena");
 
     const SizeType prePushPosition { AlignUpPow2<SizeType>(arena->position, alignmentInBytes) };
-    Assert(sizeInBytes < arena->bytesReserved - prePushPosition, "Arena push exceeds reserved size");
+    Assert(sizeInBytes < arena->bytesReserved - prePushPosition, "Arena push exceeds reserved size"); /// TODO: Remove when chaining added
     const SizeType postPushPosition { prePushPosition + sizeInBytes };
 
     SizeType sizeToZero { 0 };
@@ -79,7 +79,7 @@ internal void *Arena_Push(Arena *arena, const SizeType sizeInBytes, const SizeTy
         const SizeType postPushCommittedSizeInBytesClamped { ClampTop<SizeType>(postPushCommittedSizeInBytesAligned, arena->bytesReserved) };
         const SizeType commitSizeInBytes { postPushCommittedSizeInBytesClamped - arena->bytesCommitted };
         UInt8 *commitPtr { reinterpret_cast<UInt8*>(arena) + arena->bytesCommitted };
-        if(Flag_CheckBitIsSet(arena->configFlags, ArenaConfigs::LargePages))
+        if(Flag_CheckBitsAreSet(arena->configFlags, ArenaConfigs::LargePages))
         {
             Memory_CommitLarge(commitPtr, commitSizeInBytes);
         }
@@ -106,7 +106,6 @@ internal void *Arena_Push(Arena *arena, const SizeType sizeInBytes, const SizeTy
 internal void Arena_PopToPosition(Arena *arena, const SizeType positionToPopTo)
 {
     Assert(arena != nullptr, "Null arena");
-
     arena->position = ClampBottom(positionToPopTo, g_arenaHeaderSize);
 }
 
@@ -123,14 +122,12 @@ internal void Arena_PopByAmount(Arena *arena, const SizeType amountToPop)
 internal void Arena_Clear(Arena *arena)
 {
     Assert(arena != nullptr, "Null arena");
-
     Arena_PopToPosition(arena, 0);
 }
 
 internal TempArena TempArena_Begin(Arena *arena)
 {
     Assert(arena != nullptr, "Null arena");
-
     return TempArena
     {
         .arena = arena,

@@ -29,20 +29,27 @@ struct Range1
     T max;
 };
 
-internal Range1<UInt64> Math_GetSubdivisionRange(UInt64 subdivisionIndex, UInt64 divisionCount, UInt64 elementCount)
+template <UnsignedInteger T>
+internal constexpr Range1<T> GetSubdivisionIndexRange(T subdivisionIndex, T divisionCount, T elementCount)
 {
-    const UInt64 elementCountPerDivision { elementCount / divisionCount };
-    const UInt64 leftoverElementCount { elementCount - (elementCountPerDivision * divisionCount) };
-    const UInt64 leftoverElementCountBeforeThisDivision { MinOf<UInt64>(subdivisionIndex, leftoverElementCount) };
-    const UInt64 divisionBaseIndex { subdivisionIndex * elementCountPerDivision + leftoverElementCountBeforeThisDivision };
-    const UInt64 clampedDivisionBaseIndex { MinOf<UInt64>(divisionBaseIndex, elementCount) };
-    const UInt64 divisionOnePastLastIndex { clampedDivisionBaseIndex + elementCountPerDivision + ((subdivisionIndex < leftoverElementCount) ? 1 : 0) };
-    const UInt64 clampedDivisionOnePastLastIndex { MinOf<UInt64>(divisionOnePastLastIndex, elementCount) };
-    return Range1<UInt64>
+    const T elementCountPerDivision { elementCount / divisionCount };
+    const T leftoverElementCount { elementCount - (elementCountPerDivision * divisionCount) };
+    const T leftoverElementCountBeforeThisDivision { MinOf<T>(subdivisionIndex, leftoverElementCount) };
+    const T divisionBaseIndex { subdivisionIndex * elementCountPerDivision + leftoverElementCountBeforeThisDivision };
+    const T clampedDivisionBaseIndex { MinOf<T>(divisionBaseIndex, elementCount) };
+    const T divisionOnePastLastIndex { clampedDivisionBaseIndex + elementCountPerDivision + ((subdivisionIndex < leftoverElementCount) ? 1 : 0) };
+    const T clampedDivisionOnePastLastIndex { MinOf<T>(divisionOnePastLastIndex, elementCount) };
+    return Range1<T>
     {
         .min = clampedDivisionBaseIndex,
         .max = clampedDivisionOnePastLastIndex
     };
+}
+
+template <typename T>
+internal constexpr T Abs(T value)
+{
+    return value < T{ 0 } ? -value : value;
 }
 
 #endif // BASE_MATH_HPP

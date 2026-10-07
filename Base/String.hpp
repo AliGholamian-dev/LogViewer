@@ -19,8 +19,12 @@ struct UnicodeDecode
     UInt32 codepoint;
 };
 
+internal UnicodeDecode UTF8_Decode(UInt8 *str, SizeType max);
+internal UnicodeDecode UTF16_Decode(UInt16 *str, SizeType max);
+internal UInt32 UTF8_Encode(UInt8 *str, UInt32 codepoint);
+internal UInt32 UTF16_Encode(UInt16 *str, UInt32 codepoint);
+
 internal String8 String8_Create(UInt8* str, const SizeType length);
-internal String8 String8_Copy(Arena* arena, const String8 stringToCopyFrom);
 
 template <SizeType N>
 constexpr const String8 String8_CreateFromLiteral(const char (&literal)[N])
@@ -29,12 +33,9 @@ constexpr const String8 String8_CreateFromLiteral(const char (&literal)[N])
     return String8_Create(reinterpret_cast<UInt8*>(nonConstLiteral), N - 1);
 }
 
-internal String16 String16_Create(UInt16* str, const SizeType length);
-internal String16 String16_CreateFromString8(Arena *arena, String8 string8);
+internal String8 String8_Copy(Arena* arena, const String8 stringToCopyFrom);
 
-internal UnicodeDecode UTF8_Decode(UInt8 *str, SizeType max);
-internal UnicodeDecode UTF16_Decode(UInt16 *str, SizeType max);
-internal UInt32 UTF8_Encode(UInt8 *str, UInt32 codepoint);
-internal UInt32 UTF16_Encode(UInt16 *str, UInt32 codepoint);
+internal String16 String16_Create(UInt16* str, const SizeType length);
+internal String16 String16_CreateFromString8(Arena *arena, const String8 string8);
 
 #endif // BASE_STRING_HPP

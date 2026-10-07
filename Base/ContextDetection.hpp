@@ -132,6 +132,16 @@
 #endif
 
 ////////////////////////////////
+// Build Option Cracking
+
+#if !defined(BUILD_DEBUG)
+    #define BUILD_DEBUG 1
+#endif
+
+#if !BUILD_DEBUG
+    #define NDEBUG
+#endif
+////////////////////////////////
 // Zero All Undefined Options
 
 #if !defined(ARCH_32BIT)

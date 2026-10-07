@@ -105,4 +105,6 @@ T* Arena_PushTypeAndZero(Arena *arena)
     return Arena_PushTypeAlignedAndZero<T>(arena, MaxOf<SizeType>(alignof(T), 8));
 }
 
+#define TempArenaScope(referenceArena, tempArenaName) DeferLoop(TempArena tempArenaName { TempArena_Begin(referenceArena) }, TempArena_End(tempArenaName))
+
 #endif // BASE_ARENA_HPP
