@@ -34,10 +34,10 @@
 #include "Base/String.hpp"
 #include "Base/String.cpp"
 #include "Base/Time.hpp"
-// #include "Base/Thread.hpp"
-// #include "Base/ThreadContext.hpp"
-// #include "Base/ThreadContext.cpp"
-// #include "Base/Thread.cpp"
+#include "Base/Thread.hpp"
+#include "Base/ThreadContext.hpp"
+#include "Base/ThreadContext.cpp"
+#include "Base/Thread.cpp"
 
 // /// EntryPoint layer
 // #include "EntryPoint/EntryPoint.hpp"
@@ -47,7 +47,7 @@
 // #include "Service/WindowManager/WindowManager.hpp"
 
 // /// Platform layer
-// #include "Platform/Win32/Win32_Base.hpp"
+#include "Platform/Win32/Win32_Base.hpp"
 #include "Platform/Win32/Win32_Base.cpp"
 #include "Platform/Win32/Win32_EntryPoint.cpp"
 // #include "Platform/Win32/Win32_WindowManager.cpp"

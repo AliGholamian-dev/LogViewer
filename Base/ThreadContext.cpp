@@ -1,72 +1,54 @@
-C_LINKAGE thread_static ThreadContext *t_threadLocalThreadContext { };
+C_LINKAGE thread_local ThreadContext *t_threadContext { nullptr };
 
-internal ThreadContext *ThreadContext_Allocate(void)
+internal ThreadContext *ThreadContext_Allocate(const ArenaParams* scratchArenaParams)
 {
-    
-    const ArenaParams threadContextScratchAren0aParams
+    const ArenaParams defaultScratchArenaParams
     {
         .reserveSizeInBytes = SystemInfo_Get()->largePagesAllowed ? SystemInfo_Get()->largePageSize : MB(1),
         .commitSizeInBytes = SystemInfo_Get()->largePagesAllowed ? SystemInfo_Get()->largePageSize : KB(64),
         .optionalBackingBuffer = nullptr,
         .configFlags = SystemInfo_Get()->largePagesAllowed ? Flag_ConvertEnumToValue<ArenaConfigs>(ArenaConfigs::LargePages) : Flag_NoFlags<ArenaConfigs>()
     };
-    const ArenaParams threadContextScratchAren1aParams
-    {
-        .reserveSizeInBytes = SystemInfo_Get()->largePagesAllowed ? SystemInfo_Get()->largePageSize : MB(1),
-        .commitSizeInBytes = SystemInfo_Get()->largePagesAllowed ? SystemInfo_Get()->largePageSize : KB(64),
-        .optionalBackingBuffer = nullptr,
-        .configFlags = SystemInfo_Get()->largePagesAllowed ? Flag_ConvertEnumToValue<ArenaConfigs>(ArenaConfigs::LargePages) : Flag_NoFlags<ArenaConfigs>()
-    };
-    Arena *arena0 { Arena_Allocate(&threadContextScratchAren0aParams) };
-    Arena *arena1 { Arena_Allocate(&threadContextScratchAren1aParams) };
-    ThreadContext *threadContext { Arena_PushType<ThreadContext>(arena0) };
-    threadContext->scratchArenas[0] = arena0;
-    threadContext->scratchArenas[1] = arena1;
+
+    Arena *scratchArena { Arena_Allocate(scratchArenaParams != nullptr ? scratchArenaParams : &defaultScratchArenaParams) };
+    ThreadContext *threadContext { Arena_PushTypeAndZero<ThreadContext>(scratchArena) };
+    threadContext->scratchArena = scratchArena;
     return threadContext;
 }
 
 internal void ThreadContext_Release(ThreadContext *threadContext)
 {
     Assert(threadContext != nullptr, "Null thread context");
-
-    Arena_Release(threadContext->scratchArenas[1]);
-    Arena_Release(threadContext->scratchArenas[0]);
+    Arena_Release(threadContext->scratchArena);
 }
 
 internal void ThreadContext_Select(ThreadContext *threadContext)
 {
     Assert(threadContext != nullptr, "Null thread context");
-    
-    t_threadLocalThreadContext = threadContext;
+    t_threadContext = threadContext;
 }
 
 internal ThreadContext *ThreadContext_GetSelected(void)
 {
-    return t_threadLocalThreadContext;
+    return t_threadContext;
 }
 
 internal Arena *ThreadContext_GetScratchArena(Arena **conflicts, SizeType count)
 {
     ThreadContext *threadContext { ThreadContext_GetSelected() };
-    Arena *scratchArena { nullptr };
-    Arena **arenaPtr = threadContext->scratchArenas;
-    for(SizeType i { 0 }; i < ArrayCount(threadContext->scratchArenas); i += 1, arenaPtr += 1)
+    Bool8 hasConflict { false };
+    for(SizeType j { 0 }; j < count; ++j)
     {
-        Arena **conflictPtr = conflicts;
-        Bool8 hasConflict { false };
-        for(SizeType j { 0 }; j < count; j += 1, conflictPtr += 1)
+        if(threadContext->scratchArena == conflicts[j])
         {
-            if(*arenaPtr == *conflictPtr)
-            {
-                hasConflict = true;
-                break;
-            }
-        }
-        if(!hasConflict)
-        {
-            scratchArena = *arenaPtr;
+            hasConflict = true;
             break;
         }
+    }
+    Arena *scratchArena { nullptr };
+    if(!hasConflict)
+    {
+        scratchArena = threadContext->scratchArena;
     }
     return scratchArena;
 }
@@ -89,7 +71,7 @@ internal LaneContext ThreadContext_SetLaneContext(LaneContext laneContext)
     return restore;
 }
 
-internal void ThreadContext_WaitOnLaneBarrier(void *broadcastData, SizeType broadcastSize, UInt64 broadcastSourceLaneIndex)
+internal void ThreadContext_WaitOnLaneBarrierAndBroadcastData(void *broadcastData, SizeType broadcastSize, SizeType broadcastSourceLaneIndex)
 {
     ThreadContext *threadContext { ThreadContext_GetSelected() };
   
@@ -118,32 +100,27 @@ LaneContext Lane_SetContext(LaneContext laneContext)
     return ThreadContext_SetLaneContext(laneContext);
 }
 
-UInt64 Lane_GetIndex(void)
+SizeType Lane_GetIndex(void)
 {
-    return ThreadContext_GetSelected()->laneContext.laneIndex;
+    return ThreadContext_GetSelected()->laneContext.index;
 }
 
-UInt64 Lane_GetCount(void)
+SizeType Lane_GetCount(void)
 {
-    return ThreadContext_GetSelected()->laneContext.laneCount;
+    return ThreadContext_GetSelected()->laneContext.count;
 }
 
-UInt64 Lane_GetIndexFromTaskIndex(const UInt64 index)
+Range1<SizeType> Lane_GetRange(const SizeType elementCount)
 {
-    return index % Lane_GetCount();
-}
-
-Range1<UInt64> Lane_GetRange(const UInt64 elementCount)
-{
-    return Math_GetSubdivisionRange(Lane_GetIndex(), Lane_GetCount(), elementCount);
+    return GetSubdivisionIndexRange<SizeType>(Lane_GetIndex(), Lane_GetCount(), elementCount);
 }
 
 void Lane_Sync()
 {
-    ThreadContext_WaitOnLaneBarrier(nullptr, 0, 0);
+    ThreadContext_WaitOnLaneBarrierAndBroadcastData(nullptr, 0, 0);
 }
 
-void Lane_SyncAndBroadcastData(void* data, SizeType dataSize, UInt64 sourceLaneIndex)
+void Lane_SyncAndBroadcastData(void* data, SizeType dataSize, SizeType sourceLaneIndex)
 {
-    ThreadContext_WaitOnLaneBarrier(data, dataSize, sourceLaneIndex);
+    ThreadContext_WaitOnLaneBarrierAndBroadcastData(data, dataSize, sourceLaneIndex);
 }
