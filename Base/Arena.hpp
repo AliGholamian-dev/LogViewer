@@ -30,6 +30,8 @@ struct TempArena
     SizeType position;
 };
 
+/// TODO: Add a setter for the Default, so that the user can change based on options or system constraints
+internal ArenaParams Arena_CreateDefaultArenaParams(void);
 internal Arena *Arena_Allocate(const ArenaParams* params);
 internal void Arena_Release(Arena *arena);
 internal SizeType Arena_GetPosition(const Arena *arena);

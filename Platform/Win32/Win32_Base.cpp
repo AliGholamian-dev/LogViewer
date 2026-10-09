@@ -518,13 +518,7 @@ internal void Win32_InitPlatform(void)
 
     /// Main thread context
     {
-        const ArenaParams mainThreadScratchArenaParams
-        {
-            .reserveSizeInBytes = SystemInfo_Get()->largePagesAllowed ? SystemInfo_Get()->largePageSize : MB(1),
-            .commitSizeInBytes = SystemInfo_Get()->largePagesAllowed ? SystemInfo_Get()->largePageSize : KB(64),
-            .optionalBackingBuffer = nullptr,
-            .configFlags = SystemInfo_Get()->largePagesAllowed ? Flag_ConvertEnumToValue<ArenaConfigs>(ArenaConfigs::LargePages) : Flag_NoFlags<ArenaConfigs>()
-        };
+        const ArenaParams mainThreadScratchArenaParams { Arena_CreateDefaultArenaParams() };
         ThreadContext *threadContext { ThreadContext_Allocate(&mainThreadScratchArenaParams) };
         ThreadContext_Select(threadContext);
     }
@@ -534,13 +528,7 @@ internal void Win32_InitPlatform(void)
     {
         InitializeCriticalSection(&g_win32PlatformState.entityMutex);
         {
-            const ArenaParams entityArenaParams
-            {
-                .reserveSizeInBytes = SystemInfo_Get()->largePagesAllowed ? SystemInfo_Get()->largePageSize : MB(1),
-                .commitSizeInBytes = SystemInfo_Get()->largePagesAllowed ? SystemInfo_Get()->largePageSize : KB(64),
-                .optionalBackingBuffer = nullptr,
-                .configFlags = SystemInfo_Get()->largePagesAllowed ? Flag_ConvertEnumToValue<ArenaConfigs>(ArenaConfigs::LargePages) : Flag_NoFlags<ArenaConfigs>()
-            };
+            const ArenaParams entityArenaParams { Arena_CreateDefaultArenaParams() };
             g_win32PlatformState.entityArena = Arena_Allocate(&entityArenaParams);
         }
         g_win32PlatformState.firstFreeEntity = nullptr;

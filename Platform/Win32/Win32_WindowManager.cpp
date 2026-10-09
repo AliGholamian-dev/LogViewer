@@ -123,13 +123,7 @@ internal LRESULT CALLBACK Win32_WindowManager_WindowProcedure(HWND hwnd, UINT uM
 internal void WindowManager_Init(void)
 {
     {
-        const ArenaParams windowManagerArenaParams
-        {
-            .reserveSizeInBytes = SystemInfo_Get()->largePagesAllowed ? SystemInfo_Get()->largePageSize : MB(1),
-            .commitSizeInBytes = SystemInfo_Get()->largePagesAllowed ? SystemInfo_Get()->largePageSize : KB(64),
-            .optionalBackingBuffer = nullptr,
-            .configFlags = SystemInfo_Get()->largePagesAllowed ? Flag_ConvertEnumToValue<ArenaConfigs>(ArenaConfigs::LargePages) : Flag_NoFlags<ArenaConfigs>()
-        };
+        const ArenaParams windowManagerArenaParams {  Arena_CreateDefaultArenaParams()  };
         g_win32WindowManagerState.arena = Arena_Allocate(&windowManagerArenaParams);
     }
     g_win32WindowManagerState.hInstance = GetModuleHandle(nullptr);

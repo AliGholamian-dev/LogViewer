@@ -1,5 +1,17 @@
 global constexpr SizeType g_arenaHeaderSize { sizeof(Arena) };
 
+internal ArenaParams Arena_CreateDefaultArenaParams(void)
+{
+    const SizeType clampedReserveSizeForLargePages { ClampTop<SizeType>(SystemInfo_Get()->largePageSize, MB(16)) };
+    return ArenaParams
+    {
+        .reserveSizeInBytes = SystemInfo_Get()->largePagesAllowed ?  clampedReserveSizeForLargePages : MB(1),
+        .commitSizeInBytes = SystemInfo_Get()->largePagesAllowed ? clampedReserveSizeForLargePages : KB(64),
+        .optionalBackingBuffer = nullptr,
+        .configFlags = SystemInfo_Get()->largePagesAllowed ? Flag_ConvertEnumToValue<ArenaConfigs>(ArenaConfigs::LargePages) : Flag_NoFlags<ArenaConfigs>()
+    };
+}
+
 internal Arena *Arena_Allocate(const ArenaParams* params)
 {
     Assert(params != nullptr, "Null arena paramters");
