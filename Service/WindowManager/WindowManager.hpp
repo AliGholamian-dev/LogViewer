@@ -1,13 +1,14 @@
 #ifndef SERVICE_WINDOW_MANAGER_WINDOW_MANAGER_HPP
 #define SERVICE_WINDOW_MANAGER_WINDOW_MANAGER_HPP
 
+/// TODO: Maybe instead of global/static window state in platform port, introduce a WM struct
+
 enum class WM_WindowFlags : UInt8
 {
     UseDefaultPosition = (1 << 0),
     UseDefaultSize     = (1 << 1),
 };
 
-/// TODO: Maybe instead of global/static window state in platform port, introduce a WM struct
 struct WM_Window
 {
     void* impl;
@@ -53,7 +54,6 @@ internal Bool8 WindowManager_GetIsFullscreen(WM_Window window);
 internal Bool8 WindowManager_GetIsMaximized(WM_Window window);
 internal Bool8 WindowManager_GetIsMinimized(WM_Window window);
 internal FlagType<WM_Modifiers> WindowManager_GetModifiers(WM_Window window);
-internal WM_EventList WindowManager_GetEvents(Arena *arena, const Bool8 wait);
 internal void WindowManager_SetTitle(WM_Window window, const String8 title);
 internal void WindowManager_Focus(WM_Window window);
 internal void WindowManager_SetFullscreen(WM_Window window, const Bool8 fullscreen);
@@ -61,6 +61,9 @@ internal void WindowManager_SetMaximized(WM_Window window, const Bool8 maximized
 internal void WindowManager_SetMinimized(WM_Window window, const Bool8 minimized);
 internal void WindowManager_BringToFront(WM_Window window);
 internal void WindowManager_DoFirstPaint(WM_Window window);
+
+internal WM_Event *WindowManager_PushNewEventToEventList(Arena *arena, WM_EventList *eventList, WM_EventKind eventKind);
 internal void WindowManager_SendWakeupEvent(void);
+internal WM_EventList WindowManager_GetEvents(Arena *arena, const Bool8 wait);
 
 #endif // SERVICE_WINDOW_MANAGER_WINDOW_MANAGER_HPP

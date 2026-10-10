@@ -13,7 +13,7 @@ struct Win32Entity
     Win32EntityKind kind;
     union
     {
-        Win32Entity* nextFree; /// TODO: I do not like this approach
+        Win32Entity* next;
         struct
         {
             ThreadEntryPointFunctionType *entryPointFunction;
@@ -35,7 +35,7 @@ struct Win32PlatformState
     SInt64 microsecondResolution;
     CRITICAL_SECTION entityMutex;
     Arena *entityArena;
-    Win32Entity* firstFreeEntity; /// TODO: I do not like this approach
+    Win32Entity* firstFreeEntity;
 };
 
 global Win32PlatformState g_win32PlatformState {};
@@ -143,28 +143,28 @@ internal Win32Entity *Win32_AllocateEntity(Win32EntityKind entityKind)
         if(win32Entity != nullptr)
         {
             Assert(win32Entity->kind == Win32EntityKind::Free, "Free Win32Entity does not have Free kind as tag");
-            g_win32PlatformState.firstFreeEntity = g_win32PlatformState.firstFreeEntity->nextFree;
+            SLL_StackPop(g_win32PlatformState.firstFreeEntity);
         }
         else
         {
             win32Entity = Arena_PushType<Win32Entity>(g_win32PlatformState.entityArena);
         }
+        Assert(win32Entity != nullptr, "Could not allocate Win32Entity");
         Memory_Zero(win32Entity, sizeof(*win32Entity));
+        win32Entity->kind = entityKind;
     }
     LeaveCriticalSection(&g_win32PlatformState.entityMutex);
-
-    Assert(win32Entity != nullptr, "Could not allocate Win32Entity");
-    win32Entity->kind = entityKind;
     return win32Entity;
 }
 
 internal void Win32_ReleaseEntity(Win32Entity *entity)
 {
     Assert(entity != nullptr, "Null Win32Entity");
-    entity->kind = Win32EntityKind::Free;
     EnterCriticalSection(&g_win32PlatformState.entityMutex);
-    entity->nextFree = g_win32PlatformState.firstFreeEntity;
-    g_win32PlatformState.firstFreeEntity = entity;
+    {
+        entity->kind = Win32EntityKind::Free;
+        SLL_StackPush(g_win32PlatformState.firstFreeEntity, entity);
+    }
     LeaveCriticalSection(&g_win32PlatformState.entityMutex);
 }
 

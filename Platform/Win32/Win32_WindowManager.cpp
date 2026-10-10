@@ -1,6 +1,7 @@
 struct Win32WindowMangerWindow
 {
-    Win32WindowMangerWindow *nextFree;
+    Win32WindowMangerWindow *next;
+    Win32WindowMangerWindow *prev;
     HWND hwnd;
     HDC hdc;
     WINDOWPLACEMENT lastWindowPlacement;
@@ -14,6 +15,8 @@ struct Win32WindowManagerState
     Arena *arena;
     HINSTANCE hInstance;
     LPCTSTR windowClassName { L"graphical-window" };
+    Win32WindowMangerWindow *firstWindow;
+    Win32WindowMangerWindow *lastWindow;
     Win32WindowMangerWindow *freeWindow;
 };
 
@@ -29,19 +32,18 @@ internal WM_Window Win32_WindowManger_GetWindowFromWin32Window(Win32WindowManger
     };
 }
 
-internal Win32WindowMangerWindow *Win32_WindowManger_GetWin32WindowFromHWND(HWND)
+internal Win32WindowMangerWindow *Win32_WindowManger_GetWin32WindowFromHWND(HWND hwnd)
 {
-  Win32WindowMangerWindow *win32Window { nullptr };
-  /// TODO:
-//   for(Win32WindowMangerWindow *window = g_win32WindowManagerState.first_window; window != nullptr; window = window->next)
-//   {
-//     if(w->hwnd == hwnd)
-//     {
-//       result = w;
-//       break;
-//     }
-//   }
-  return win32Window;
+    Win32WindowMangerWindow *win32Window { nullptr };
+    for(Win32WindowMangerWindow *window { g_win32WindowManagerState.firstWindow }; window != nullptr; window = window->next)
+    {
+        if(window->hwnd == hwnd)
+        {
+            win32Window = window;
+            break;
+        }
+    }
+    return win32Window;
 }
 
 internal Win32WindowMangerWindow *Win32_WindowManger_AllocateWindow(void)
@@ -49,138 +51,50 @@ internal Win32WindowMangerWindow *Win32_WindowManger_AllocateWindow(void)
     Win32WindowMangerWindow *win32Window { g_win32WindowManagerState.freeWindow };
     if (win32Window != nullptr)
     {
-        g_win32WindowManagerState.freeWindow = g_win32WindowManagerState.freeWindow->nextFree;
+        SLL_StackPop(g_win32WindowManagerState.freeWindow);
     }
     else
     {
         win32Window = Arena_PushType<Win32WindowMangerWindow>(g_win32WindowManagerState.arena);
     }
+    Assert(win32Window != nullptr, "Could not allocate Win32WindowMangerWindow");
     Memory_Zero(win32Window, sizeof(*win32Window));
+    if(win32Window)
+    {
+        DLL_PushBack(g_win32WindowManagerState.firstWindow, g_win32WindowManagerState.lastWindow, win32Window);
+    }
     win32Window->lastWindowPlacement.length = sizeof(WINDOWPLACEMENT);
     return win32Window;
 }
 
 internal void Win32_WindowManger_ReleaseWindow(Win32WindowMangerWindow *win32Window)
 {
+    Assert(win32Window != nullptr, "Null win32 window");
     ReleaseDC(win32Window->hwnd, win32Window->hdc);
     DestroyWindow(win32Window->hwnd);
-    win32Window->nextFree = g_win32WindowManagerState.freeWindow;
-    g_win32WindowManagerState.freeWindow = win32Window;
-}
-
-internal WM_Event *Win32_WindowManger_PushNewEventToEventList(Arena *arena, WM_EventList *eventList, WM_EventKind kind)
-{   
-    WM_Event *event = Arena_PushTypeAndZero<WM_Event>(arena);
-    event->next = nullptr;
-    event->prev = eventList->last;
-    
-    if (eventList->last != nullptr)
-    {
-        eventList->last->next = event;
-    }
-    else
-    {
-        eventList->first = event;
-    }
-    eventList->last = event;
-    eventList->count = eventList->count  + 1;
-    event->timestamp = TimestampClock::Now();
-    event->kind = kind;
-    return event;
-}
-
-internal WM_Event *Win32_WindowManger_PushEvent(WM_EventKind kind, Win32WindowMangerWindow *win32Window)
-{
-    WM_Event *event { Win32_WindowManger_PushNewEventToEventList(g_win32EventArena, &g_win32EventList, kind) };
-    event->window = Win32_WindowManger_GetWindowFromWin32Window(win32Window);
-    event->modifiers = WindowManager_GetModifiers(event->window);
-    return event;
-}
-
-internal LRESULT CALLBACK Win32_WindowManager_WindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-    LRESULT result { 0 };
-    if (g_win32EventArena == nullptr)
-    {
-        result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
-    }
-    else
-    {
-        Win32WindowMangerWindow *win32Window { Win32_WindowManger_GetWin32WindowFromHWND(hwnd) };
-        WM_Window window { Win32_WindowManger_GetWindowFromWin32Window(win32Window) };
-        // switch (uMsg)
-        // {
-        //     default:
-        //     {
-        //         result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
-        //     } break;
-        // }
-    }
-
-    return result;
-}
-
-internal void WindowManager_Init(void)
-{
-    {
-        const ArenaParams windowManagerArenaParams {  Arena_CreateDefaultArenaParams()  };
-        g_win32WindowManagerState.arena = Arena_Allocate(&windowManagerArenaParams);
-    }
-    g_win32WindowManagerState.hInstance = GetModuleHandle(nullptr);
-    
-    if(!SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
-    {
-        /// TODO: Handle or log
-    }
-    
-    {
-        WNDCLASSEX windowClass 
-        { 
-            .cbSize = sizeof(windowClass),
-            .style = CS_VREDRAW|CS_HREDRAW,
-            .lpfnWndProc = Win32_WindowManager_WindowProcedure,
-            .cbClsExtra = 0, /// TODO:
-            .cbWndExtra = 0, /// TODO:
-            .hInstance = g_win32WindowManagerState.hInstance,
-            .hIcon = nullptr, /// TODO: From resources when added and bundled in exe
-            .hCursor = LoadCursor(nullptr, IDC_ARROW), /// TODO: From resources when added and bundled in exe
-            .hbrBackground = nullptr,  /// TODO:
-            .lpszMenuName = nullptr,  /// TODO:
-            .lpszClassName = g_win32WindowManagerState.windowClassName,
-            .hIconSm = nullptr  /// TODO:
-        };
-        ATOM windowAtom { RegisterClassEx(&windowClass) };
-        Unused(windowAtom);
-    }
-
-    g_win32WindowManagerState.freeWindow = nullptr;
-}
-
-internal void WindowManager_DeInit(void)
-{
-    NoOp();
+    DLL_Remove(g_win32WindowManagerState.firstWindow, g_win32WindowManagerState.lastWindow, win32Window);
+    SLL_StackPush(g_win32WindowManagerState.freeWindow, win32Window);
 }
 
 internal WM_Window WindowManager_OpenWindow(const Position2D<SInt32> position, const Size2D<UInt16> size, const FlagType<WM_WindowFlags> flags, const String8 title)
 {   
-    HWND hwnd { 0 };
+    HWND hwnd { };
+    ScratchArenaScope(scratchArena, nullptr, 0)
     {
-        TempArena scratchArena { ThreadContext_BeginScratchArena(nullptr, 0) };
         const String16 title16 { String16_CreateFromString8(scratchArena.arena, title) };
         hwnd = CreateWindowEx(WS_EX_APPWINDOW, 
             g_win32WindowManagerState.windowClassName, 
             (LPCWSTR)title16.str,
             WS_OVERLAPPEDWINDOW | WS_SIZEBOX, /// TODO: 
-            Flag_CheckBitIsSet<WM_WindowFlags>(flags, WM_WindowFlags::UseDefaultPosition) ?  CW_USEDEFAULT : position.x,
-            Flag_CheckBitIsSet<WM_WindowFlags>(flags, WM_WindowFlags::UseDefaultPosition) ?  CW_USEDEFAULT : position.y,
-            Flag_CheckBitIsSet<WM_WindowFlags>(flags, WM_WindowFlags::UseDefaultSize) ?  CW_USEDEFAULT : SafeCast<UInt16, int>(size.width),
-            Flag_CheckBitIsSet<WM_WindowFlags>(flags, WM_WindowFlags::UseDefaultSize) ?  CW_USEDEFAULT : SafeCast<UInt16, int>(size.height),
+            Flag_CheckBitsAreSet<WM_WindowFlags>(flags, WM_WindowFlags::UseDefaultPosition) ?  CW_USEDEFAULT : position.x,
+            Flag_CheckBitsAreSet<WM_WindowFlags>(flags, WM_WindowFlags::UseDefaultPosition) ?  CW_USEDEFAULT : position.y,
+            Flag_CheckBitsAreSet<WM_WindowFlags>(flags, WM_WindowFlags::UseDefaultSize) ?  CW_USEDEFAULT : SafeCast<UInt16, int>(size.width),
+            Flag_CheckBitsAreSet<WM_WindowFlags>(flags, WM_WindowFlags::UseDefaultSize) ?  CW_USEDEFAULT : SafeCast<UInt16, int>(size.height),
             0, 
             nullptr,
             g_win32WindowManagerState.hInstance,
             nullptr);
         DragAcceptFiles(hwnd, TRUE);
-        ThreadContext_EndScratchArena(scratchArena);
     }
 
     Win32WindowMangerWindow *win32Window { Win32_WindowManger_AllocateWindow() };
@@ -233,45 +147,27 @@ internal FlagType<WM_Modifiers> WindowManager_GetModifiers(WM_Window window)
     FlagType<WM_Modifiers> modifiers { Flag_NoFlags<WM_Modifiers>() };
     if (GetKeyState(VK_CONTROL) & 0x8000)
     {
-        modifiers = Flag_SetBit(modifiers, WM_Modifiers::Ctrl);
+        modifiers = Flag_SetBits<WM_Modifiers>(modifiers, WM_Modifiers::Ctrl);
     }
     if (GetKeyState(VK_SHIFT) & 0x8000)
     {
-        modifiers = Flag_SetBit(modifiers, WM_Modifiers::Shift);
+        modifiers = Flag_SetBits<WM_Modifiers>(modifiers, WM_Modifiers::Shift);
     }
     if (GetKeyState(VK_MENU) & 0x8000)
     {
-        modifiers = Flag_SetBit(modifiers, WM_Modifiers::Alt);
+        modifiers = Flag_SetBits<WM_Modifiers>(modifiers, WM_Modifiers::Alt);
     }
     return modifiers;
-}
-
-internal WM_EventList WindowManager_GetEvents(Arena *arena, const Bool8 wait)
-{
-    g_win32EventArena = arena;
-    g_win32EventList.count = 0;
-    g_win32EventList.first = nullptr;
-    g_win32EventList.last = nullptr;
-    MSG msg { };
-    if (!wait || GetMessage(&msg, 0, 0, 0))
-    {
-        Bool8 firstWait { wait };
-        for (; firstWait || PeekMessageW(&msg, 0, 0, 0, PM_REMOVE); firstWait = false)
-        {
-            TranslateMessage(&msg);
-            DispatchMessageW(&msg);
-        }
-    }
-    return g_win32EventList;
 }
 
 internal void WindowManager_SetTitle(WM_Window window, const String8 title)
 {
     Win32WindowMangerWindow *win32Window { static_cast<Win32WindowMangerWindow*>(window.impl) };
-    TempArena scratchArena { ThreadContext_BeginScratchArena(nullptr, 0) };
-    const String16 title16 { String16_CreateFromString8(scratchArena.arena, title) };
-    SetWindowText(win32Window->hwnd, (LPCWSTR)title16.str);
-    ThreadContext_EndScratchArena(scratchArena);
+    ScratchArenaScope(scratchArena, nullptr, 0)
+    {
+        const String16 title16 { String16_CreateFromString8(scratchArena.arena, title) };
+        SetWindowText(win32Window->hwnd, (LPCWSTR)title16.str);
+    }
 }
 
 internal void WindowManager_SetPosition(WM_Window window, const Position2D<SInt32> position)
@@ -356,4 +252,95 @@ internal void WindowManager_DoFirstPaint(WM_Window window)
     {
         ShowWindow(win32Window->hwnd, SW_MAXIMIZE);
     }
+}
+
+internal WM_Event *Win32_WindowManger_PushEvent(WM_EventKind kind, Win32WindowMangerWindow *win32Window)
+{
+    Assert(win32Window != nullptr, "Null win32 window");
+    WM_Event *event { WindowManager_PushNewEventToEventList(g_win32EventArena, &g_win32EventList, kind) };
+    event->window = Win32_WindowManger_GetWindowFromWin32Window(win32Window);
+    event->modifiers = WindowManager_GetModifiers(event->window);
+    return event;
+}
+
+internal WM_EventList WindowManager_GetEvents(Arena *arena, const Bool8 wait)
+{
+    g_win32EventArena = arena;
+    g_win32EventList.count = 0;
+    g_win32EventList.first = nullptr;
+    g_win32EventList.last = nullptr;
+    MSG msg { };
+    if (!wait || GetMessage(&msg, 0, 0, 0))
+    {
+        for (Bool8 firstWait { wait }; firstWait || PeekMessage(&msg, 0, 0, 0, PM_REMOVE); firstWait = false)
+        {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+    }
+    return g_win32EventList;
+}
+
+internal LRESULT CALLBACK Win32_WindowManager_WindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    LRESULT result { 0 };
+    if (g_win32EventArena == nullptr)
+    {
+        result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
+    }
+    else
+    {
+        Win32WindowMangerWindow *win32Window { Win32_WindowManger_GetWin32WindowFromHWND(hwnd) };
+        WM_Window window { Win32_WindowManger_GetWindowFromWin32Window(win32Window) };
+        // switch (uMsg)
+        // {
+        //     default:
+        //     {
+        //         result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
+        //     } break;
+        // }
+    }
+
+    return result;
+}
+
+internal void WindowManager_Init(void)
+{
+    {
+        const ArenaParams windowManagerArenaParams {  Arena_CreateDefaultArenaParams()  };
+        g_win32WindowManagerState.arena = Arena_Allocate(&windowManagerArenaParams);
+    }
+    g_win32WindowManagerState.hInstance = GetModuleHandle(nullptr);
+    
+    if(!SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
+    {
+        /// TODO: Handle or log
+    }
+    
+    {
+        WNDCLASSEX windowClass 
+        { 
+            .cbSize = sizeof(windowClass),
+            .style = CS_VREDRAW|CS_HREDRAW,
+            .lpfnWndProc = Win32_WindowManager_WindowProcedure,
+            .cbClsExtra = 0, /// TODO:
+            .cbWndExtra = 0, /// TODO:
+            .hInstance = g_win32WindowManagerState.hInstance,
+            .hIcon = nullptr, /// TODO: From resources when added and bundled in exe
+            .hCursor = LoadCursor(nullptr, IDC_ARROW), /// TODO: From resources when added and bundled in exe
+            .hbrBackground = nullptr,  /// TODO:
+            .lpszMenuName = nullptr,  /// TODO:
+            .lpszClassName = g_win32WindowManagerState.windowClassName,
+            .hIconSm = nullptr  /// TODO:
+        };
+        ATOM windowAtom { RegisterClassEx(&windowClass) };
+        Unused(windowAtom);
+    }
+
+    g_win32WindowManagerState.freeWindow = nullptr;
+}
+
+internal void WindowManager_DeInit(void)
+{
+    NoOp();
 }

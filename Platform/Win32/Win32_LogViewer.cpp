@@ -38,6 +38,7 @@
 #include "Base/Memory.hpp"
 #include "Base/Arena.hpp"
 #include "Base/Arena.cpp"
+#include "Base/LinkedList.hpp"
 #include "Base/String.hpp"
 #include "Base/String.cpp"
 #include "Base/Time.hpp"
@@ -50,14 +51,15 @@
 #include "EntryPoint/EntryPoint.hpp"
 #include "EntryPoint/EntryPoint.cpp"
 
-// /// Service layer
-// #include "Service/WindowManager/WindowManager.hpp"
+/// Service layer
+#include "Service/WindowManager/WindowManager.hpp"
+#include "Service/WindowManager/WindowManager.cpp"
 
-// /// Platform layer
+/// Platform layer
 #include "Platform/Win32/Win32_Base.hpp"
 #include "Platform/Win32/Win32_Base.cpp"
 #include "Platform/Win32/Win32_EntryPoint.cpp"
-// #include "Platform/Win32/Win32_WindowManager.cpp"
+#include "Platform/Win32/Win32_WindowManager.cpp"
 
 // /// App layer
 // #include "GUIApp/GUIApp.hpp"
