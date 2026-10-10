@@ -13,7 +13,7 @@ struct Win32Entity
     Win32EntityKind kind;
     union
     {
-        Win32Entity* nextFree;
+        Win32Entity* nextFree; /// TODO: I do not like this approach
         struct
         {
             ThreadEntryPointFunctionType *entryPointFunction;
@@ -35,7 +35,7 @@ struct Win32PlatformState
     SInt64 microsecondResolution;
     CRITICAL_SECTION entityMutex;
     Arena *entityArena;
-    Win32Entity* firstFreeEntity;
+    Win32Entity* firstFreeEntity; /// TODO: I do not like this approach
 };
 
 global Win32PlatformState g_win32PlatformState {};
@@ -378,13 +378,13 @@ internal void CondVar_NotifyAll(CondVar condVar)
     WakeAllConditionVariable(&entity->condVar);
 }
 
-internal Semaphore Semaphore_Create(const UInt32 initialCount, const UInt32 maxCount, const String8 name)
+internal Semaphore Semaphore_Create(const SizeType initialCount, const SizeType maxCount, const String8 name)
 {
     HANDLE handle {};
     ScratchArenaScope(scratchArena, nullptr, 0)
     {
         const String16 name16{ String16_CreateFromString8(scratchArena.arena, name) };
-        handle = CreateSemaphore(0, SafeCast<UInt32, LONG>(initialCount), SafeCast<UInt32, LONG>(maxCount), reinterpret_cast<PCWSTR>(name16.str));
+        handle = CreateSemaphore(0, SafeCast<SizeType, LONG>(initialCount), SafeCast<SizeType, LONG>(maxCount), reinterpret_cast<PCWSTR>(name16.str));
 
     }
     return Semaphore  
@@ -436,16 +436,16 @@ internal Bool8 Semaphore_Take(Semaphore semaphore, const MilliSeconds waitTimeIn
     return (waitResult == WAIT_OBJECT_0);
 }
 
-internal void Semaphore_DropBy(Semaphore semaphore, const UInt32 dropCount)
+internal void Semaphore_DropBy(Semaphore semaphore, const SizeType dropCount)
 {
     HANDLE handle { static_cast<HANDLE>(semaphore.impl) };
-    ReleaseSemaphore(handle, SafeCast<UInt32, LONG>(dropCount), 0);
+    ReleaseSemaphore(handle, SafeCast<SizeType, LONG>(dropCount), 0);
 }
 
-internal Barrier Barrier_Create(const UInt32 count)
+internal Barrier Barrier_Create(const SizeType count)
 {
     Win32Entity *entity { Win32_AllocateEntity(Win32EntityKind::Barrier) };
-    BOOL initWasGood { InitializeSynchronizationBarrier(&entity->synchBarrier, SafeCast<UInt32, LONG>(count), -1) };
+    BOOL initWasGood { InitializeSynchronizationBarrier(&entity->synchBarrier, SafeCast<SizeType, LONG>(count), -1) };
     Unused(initWasGood);
     return Barrier
     {
@@ -506,7 +506,7 @@ internal void Win32_InitPlatform(void)
         {
             g_win32PlatformState.systemInfo = SystemInfo
             {
-                .logicalProcessorCount = SafeCast<DWORD, UInt64>(win32Systeminfo.dwNumberOfProcessors),
+                .logicalProcessorCount = SafeCast<DWORD, SizeType>(win32Systeminfo.dwNumberOfProcessors),
                 .pageSize = SafeCast<DWORD, SizeType>(win32Systeminfo.dwPageSize),
                 .largePageSize = GetLargePageMinimum(),
                 .allocationGranularity = SafeCast<DWORD, SizeType>(win32Systeminfo.dwAllocationGranularity),

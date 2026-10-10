@@ -88,32 +88,42 @@ internal void ThreadContext_WaitOnLaneBarrierAndBroadcastData(void *broadcastDat
     }
 }
 
-LaneContext Lane_SetContext(LaneContext laneContext)
+internal LaneContext Lane_SetContext(LaneContext laneContext)
 {
     return ThreadContext_SetLaneContext(laneContext);
 }
 
-SizeType Lane_GetIndex(void)
+internal SizeType Lane_GetIndex(void)
 {
     return ThreadContext_GetSelected()->laneContext.index;
 }
 
-SizeType Lane_GetCount(void)
+internal SizeType Lane_GetCount(void)
 {
     return ThreadContext_GetSelected()->laneContext.count;
 }
 
-Range1<SizeType> Lane_GetRange(const SizeType elementCount)
+internal SizeType Lane_GetMainLaneIndex()
+{
+    return 0;
+}
+
+internal Bool8 Lane_CheckIsMainLaneInLaneGroup()
+{
+    return Lane_GetIndex() == Lane_GetMainLaneIndex();
+}
+
+internal Range1<SizeType> Lane_GetRange(const SizeType elementCount)
 {
     return GetSubdivisionIndexRange<SizeType>(Lane_GetIndex(), Lane_GetCount(), elementCount);
 }
 
-void Lane_Sync()
+internal void Lane_Sync()
 {
     ThreadContext_WaitOnLaneBarrierAndBroadcastData(nullptr, 0, 0);
 }
 
-void Lane_SyncAndBroadcastData(void* data, SizeType dataSize, SizeType sourceLaneIndex)
+internal void Lane_SyncAndBroadcastData(void* data, SizeType dataSize, SizeType sourceLaneIndex)
 {
     ThreadContext_WaitOnLaneBarrierAndBroadcastData(data, dataSize, sourceLaneIndex);
 }

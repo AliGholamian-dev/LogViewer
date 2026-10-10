@@ -2,6 +2,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <cassert>
+#include <cstdarg>
+#include <cstdio>
 #include <type_traits>
 #include <concepts>
 #include <limits>
@@ -14,7 +16,12 @@
     #pragma warning(disable: 4668)
     #include <Windows.h>
     #include <shellapi.h>
+    #define STB_SPRINTF_DECORATE(name) logview_##name
+    #define STB_SPRINTF_IMPLEMENTATION
+    #define STB_SPRINTF_STATIC
+    #include "Vendor/stb/stb_sprintf.h"
 #pragma warning(pop)
+
 
 #define NEED_ASYNC 1
 #define NEED_MAIN_WINDOW 0
@@ -39,9 +46,9 @@
 #include "Base/ThreadContext.cpp"
 #include "Base/Thread.cpp"
 
-// /// EntryPoint layer
-// #include "EntryPoint/EntryPoint.hpp"
-// #include "EntryPoint/EntryPoint.cpp"
+/// EntryPoint layer
+#include "EntryPoint/EntryPoint.hpp"
+#include "EntryPoint/EntryPoint.cpp"
 
 // /// Service layer
 // #include "Service/WindowManager/WindowManager.hpp"

@@ -63,15 +63,15 @@ internal Bool8 CondVar_WaitRWWriteFor(CondVar condVar, RWMutex rwMutex, const Mi
 internal void CondVar_NotifyOne(CondVar condVar);
 internal void CondVar_NotifyAll(CondVar condVar);
 
-internal Semaphore Semaphore_Create(const UInt32 initialCount, const UInt32 maxCount, const String8 name);
+internal Semaphore Semaphore_Create(const SizeType initialCount, const SizeType maxCount, const String8 name);
 internal void Semaphore_Destory(Semaphore semaphore);
 internal Semaphore Semaphore_Open(const String8 name);
 internal void Semaphore_Close(Semaphore semaphore);
 internal Bool8 Semaphore_Take(Semaphore semaphore, const MilliSeconds waitTimeInMilliSeconds);
 internal void Semaphore_DropOne(Semaphore semaphore);
-internal void Semaphore_DropBy(Semaphore semaphore, const UInt32 dropCount);
+internal void Semaphore_DropBy(Semaphore semaphore, const SizeType dropCount);
 
-internal Barrier Barrier_Create(const UInt32 count);
+internal Barrier Barrier_Create(const SizeType count);
 internal void Barrier_Destory(Barrier barrier);
 internal void Barrier_Wait(Barrier barrier);
 

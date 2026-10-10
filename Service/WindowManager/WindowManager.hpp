@@ -4,7 +4,7 @@
 enum class WM_WindowFlags : UInt8
 {
     UseDefaultPosition = (1 << 0),
-    UseDefaultSize     = (1 << 0),
+    UseDefaultSize     = (1 << 1),
 };
 
 /// TODO: Maybe instead of global/static window state in platform port, introduce a WM struct

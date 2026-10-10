@@ -12,6 +12,39 @@ internal String8 String8_Create(UInt8* str, const SizeType length)
     };
 }
 
+internal String8 String8_CreateFromFormattedStringAndVariadicArguments(Arena* arena, const char* format, va_list args)
+{
+    String8 result
+    {
+        .str = nullptr,
+        .length = 0
+    };
+    va_list argsCopy;
+    va_copy(argsCopy, args);
+    SInt32 neededBytes { logview_vsnprintf(nullptr, 0, format, args) + 1 };
+    if(neededBytes >= 0)
+    {
+        result.str = Arena_PushArray<UInt8>(arena, SafeCast<SInt32, SizeType>(neededBytes));
+        SInt32 formattedSize { logview_vsnprintf(reinterpret_cast<char*>(result.str), neededBytes, format, argsCopy) };
+        if(formattedSize >= 0)
+        {
+            result.length = SafeCast<SInt32, SizeType>(formattedSize);
+            result.str[result.length] = 0;
+        }
+    }
+    va_end(argsCopy);
+    return result;
+}
+
+internal String8 String8_CreateFromFormattedString(Arena* arena, const char* format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    String8 result { String8_CreateFromFormattedStringAndVariadicArguments(arena, format, args) };
+    va_end(args);
+    return result;
+}
+
 internal String8 String8_Copy(Arena* arena, const String8 stringToCopyFrom)
 {
     Assert(arena != nullptr, "Null arena for string copy");

@@ -28,11 +28,13 @@ internal void ThreadContext_WaitOnLaneBarrierAndBroadcastData(void *broadcastDat
 
 #define ScratchArenaScope(scratchArenaName, conflicts, count) for (TempArena scratchArenaName = ThreadContext_BeginScratchArena(conflicts, count), *Glue(_ScratchArenaOnce_, __LINE__) = &scratchArenaName; Glue(_ScratchArenaOnce_, __LINE__) != nullptr; ThreadContext_EndScratchArena(scratchArenaName), Glue(_ScratchArenaOnce_, __LINE__) = nullptr)
 
-LaneContext Lane_SetContext(LaneContext laneContext);
-SizeType Lane_GetIndex(void);
-SizeType Lane_GetCount(void);
-Range1<SizeType> Lane_GetRange(const SizeType elementCount);
-void Lane_Sync();
-void Lane_SyncAndBroadcastData(void* data, SizeType dataSize, SizeType sourceLaneIndex);
+internal LaneContext Lane_SetContext(LaneContext laneContext);
+internal SizeType Lane_GetIndex(void);
+internal SizeType Lane_GetCount(void);
+internal SizeType Lane_GetMainLaneIndex();
+internal Bool8 Lane_CheckIsMainLaneInLaneGroup();
+internal Range1<SizeType> Lane_GetRange(const SizeType elementCount);
+internal void Lane_Sync();
+internal void Lane_SyncAndBroadcastData(void* data, SizeType dataSize, SizeType sourceLaneIndex);
 
 #endif // BASE_THREAD_CONTEXT_HPP
