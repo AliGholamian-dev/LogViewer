@@ -11,9 +11,7 @@ internal void EntryPoint_Main_InitApplication(void)
     {
         const Position2D<SInt32> position { .x = 0, .y = 0 };
         const Size2D<UInt16> size { .width  = 0, .height = 0 };
-        FlagType<WM_WindowFlags> flags { Flag_NoFlags<WM_WindowFlags>() };
-        flags = Flag_SetBit<WM_WindowFlags>(flags, WM_WindowFlags::UseDefaultPosition);
-        flags = Flag_SetBit<WM_WindowFlags>(flags, WM_WindowFlags::UseDefaultSize);
+        const FlagType<WM_WindowFlags> flags { Flag_FromBits<WM_WindowFlags>(WM_WindowFlags::UseDefaultPosition, WM_WindowFlags::UseDefaultSize) };
         const String8 title { String8_CreateFromLiteral("") };
         g_mainWindow = WindowManager_OpenWindow(position, size, flags, title);
     }

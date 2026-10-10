@@ -17,14 +17,14 @@ template <FlagEnum EnumType, typename... EnumTypes>
 requires (std::same_as<EnumType, EnumTypes> && ...)
 internal constexpr FlagType<EnumType> Flag_SetBits(const FlagType<EnumType> flags, const EnumType firstEnumValue, const EnumTypes... restEnumValues)
 {
-    return (flags | (Flag_ConvertEnumToValue(firstEnumValue) | ... | Flag_ConvertEnumToValue(restEnumValues)));
+    return static_cast<FlagType<EnumType>>(flags | (Flag_ConvertEnumToValue(firstEnumValue) | ... | Flag_ConvertEnumToValue(restEnumValues)));
 }
 
 template <FlagEnum EnumType, typename... EnumTypes>
 requires (std::same_as<EnumType, EnumTypes> && ...)
 internal constexpr FlagType<EnumType> Flag_ResetBits(const FlagType<EnumType> flags, const EnumType firstEnumValue, const EnumTypes... restEnumValues)
 {
-    return (flags & ~(Flag_ConvertEnumToValue(firstEnumValue) | ... | Flag_ConvertEnumToValue(restEnumValues)));
+    return static_cast<FlagType<EnumType>>(flags & ~(Flag_ConvertEnumToValue(firstEnumValue) | ... | Flag_ConvertEnumToValue(restEnumValues)));
 }
 
 template <FlagEnum EnumType>
@@ -38,6 +38,13 @@ template <FlagEnum EnumType>
 internal consteval FlagType<EnumType> Flag_NoFlags()
 {
     return static_cast<FlagType<EnumType>>(0);
+}
+
+template <FlagEnum EnumType, typename... EnumTypes>
+requires (std::same_as<EnumType, EnumTypes> && ...)
+internal constexpr FlagType<EnumType> Flag_FromBits(const EnumType firstEnumValue, const EnumTypes... restEnumValues)
+{
+    return static_cast<FlagType<EnumType>>((Flag_ConvertEnumToValue(firstEnumValue) | ... | Flag_ConvertEnumToValue(restEnumValues)));
 }
 
 template <FlagEnum EnumType, typename... EnumTypes>

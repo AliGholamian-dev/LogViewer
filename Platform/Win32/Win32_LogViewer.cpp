@@ -61,9 +61,9 @@
 #include "Platform/Win32/Win32_EntryPoint.cpp"
 #include "Platform/Win32/Win32_WindowManager.cpp"
 
-// /// App layer
-// #include "GUIApp/GUIApp.hpp"
-// #include "GUIApp/GUIApp.cpp"
+/// App layer
+#include "GUIApp/GUIApp.hpp"
+#include "GUIApp/GUIApp.cpp"
 
-// /// LogViewer layer
-// #include "LogViewer/LogViewer.cpp"
+/// LogViewer layer
+#include "LogViewer/LogViewer.cpp"
