@@ -19,7 +19,7 @@ internal void EntryPoint_Async_Enter(void *params)
     Lane_SetContext(laneContext);
     ScratchArenaScope(scratchArena, nullptr, 0)
     {
-        Thread_SetName(String8_CreateFromFormattedString(scratchArena.arena, "async_thread_%I64u", Lane_GetIndex()));
+        Thread_SetName(String8_CreateFromFormattedString(scratchArena.arena, "async_thread_%zu", Lane_GetIndex()));
     }
     for (Bool32 exit { false }; !exit;)
     {

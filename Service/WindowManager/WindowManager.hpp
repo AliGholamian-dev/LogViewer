@@ -17,6 +17,8 @@ struct WM_Window
 enum class WM_EventKind : UInt8 
 {
     Null,
+    WindowClose,
+    WindowPaint,
     Count
 };
 
@@ -49,6 +51,7 @@ internal void WindowManager_DeInit(void);
 
 internal WM_Window WindowManager_OpenWindow(const Position2D<SInt32> position, const Size2D<UInt16> size, const FlagType<WM_WindowFlags> flags, const String8 title);
 internal void WindowManager_CloseWindow(WM_Window window);
+internal Bool8 WindowManager_CheckWindowsMatch(WM_Window windowA, WM_Window windowB);
 internal Bool8 WindowManager_GetIsFocused(WM_Window window);
 internal Bool8 WindowManager_GetIsFullscreen(WM_Window window);
 internal Bool8 WindowManager_GetIsMaximized(WM_Window window);
@@ -65,5 +68,6 @@ internal void WindowManager_DoFirstPaint(WM_Window window);
 internal WM_Event *WindowManager_PushNewEventToEventList(Arena *arena, WM_EventList *eventList, WM_EventKind eventKind);
 internal void WindowManager_SendWakeupEvent(void);
 internal WM_EventList WindowManager_GetEvents(Arena *arena, const Bool8 wait);
+internal void WindowManager_EatEvent(WM_EventList *events, WM_Event *event);
 
 #endif // SERVICE_WINDOW_MANAGER_WINDOW_MANAGER_HPP

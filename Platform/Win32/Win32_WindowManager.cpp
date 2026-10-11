@@ -13,6 +13,7 @@ struct Win32WindowMangerWindow
 struct Win32WindowManagerState
 {
     Arena *arena;
+    UInt32 gfxThreadID;
     HINSTANCE hInstance;
     LPCTSTR windowClassName { L"graphical-window" };
     Win32WindowMangerWindow *firstWindow;
@@ -263,6 +264,11 @@ internal WM_Event *Win32_WindowManger_PushEvent(WM_EventKind kind, Win32WindowMa
     return event;
 }
 
+internal void WindowManager_SendWakeupEvent(void)
+{
+    PostThreadMessage(g_win32WindowManagerState.gfxThreadID, 0x401, 0, 0);
+}
+
 internal WM_EventList WindowManager_GetEvents(Arena *arena, const Bool8 wait)
 {
     g_win32EventArena = arena;
@@ -291,16 +297,28 @@ internal LRESULT CALLBACK Win32_WindowManager_WindowProcedure(HWND hwnd, UINT uM
     else
     {
         Win32WindowMangerWindow *win32Window { Win32_WindowManger_GetWin32WindowFromHWND(hwnd) };
-        WM_Window window { Win32_WindowManger_GetWindowFromWin32Window(win32Window) };
-        // switch (uMsg)
-        // {
-        //     default:
-        //     {
-        //         result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
-        //     } break;
-        // }
+        switch (uMsg)
+        {
+            case WM_CLOSE:
+            case WM_QUIT:
+            {
+                Win32_WindowManger_PushEvent(WM_EventKind::WindowClose, win32Window);
+                WindowManager_SendWakeupEvent();
+            } break;
+            case WM_PAINT:
+            {
+                PAINTSTRUCT ps { };
+                BeginPaint(hwnd, &ps);
+                EndPaint(hwnd, &ps);
+                Win32_WindowManger_PushEvent(WM_EventKind::WindowPaint, win32Window);
+                // DwmFlush();
+            } break;
+            default:
+            {
+                result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
+            } break;
+        }
     }
-
     return result;
 }
 
@@ -310,6 +328,7 @@ internal void WindowManager_Init(void)
         const ArenaParams windowManagerArenaParams {  Arena_CreateDefaultArenaParams()  };
         g_win32WindowManagerState.arena = Arena_Allocate(&windowManagerArenaParams);
     }
+    g_win32WindowManagerState.gfxThreadID = GetCurrentThreadId();
     g_win32WindowManagerState.hInstance = GetModuleHandle(nullptr);
     
     if(!SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))

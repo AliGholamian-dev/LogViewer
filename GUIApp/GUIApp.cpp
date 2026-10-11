@@ -21,7 +21,6 @@ internal void EntryPoint_Main_InitApplication(void)
 internal void EntryPoint_Main_RunApplication(void)
 {
     GUIApp_Init(g_mainWindow);
-    /// TODO: Maybe poll and translate window events here and pass to run?
     GUIApp_Run(g_mainWindow);
 
     #if NEED_MAIN_WINDOW
