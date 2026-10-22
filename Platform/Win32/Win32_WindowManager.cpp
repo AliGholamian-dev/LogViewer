@@ -300,10 +300,18 @@ internal LRESULT CALLBACK Win32_WindowManager_WindowProcedure(HWND hwnd, UINT uM
         switch (uMsg)
         {
             case WM_CLOSE:
-            case WM_QUIT:
             {
                 Win32_WindowManger_PushEvent(WM_EventKind::WindowClose, win32Window);
                 WindowManager_SendWakeupEvent();
+                // DestroyWindow(hWindow); Do this in handling of event (turn the event to close command in command handling do WindowManager_CloseWindow)
+            } break;
+            case WM_DESTROY:
+            {
+                // PostQuitMessage(0); Do this in handling of event (turn the event to command in command handling do it if it is the main window)
+            } break;
+            case WM_QUIT:
+            {
+                // Do this in handling of event (turn the event to command in command handling quit app)
             } break;
             case WM_PAINT:
             {

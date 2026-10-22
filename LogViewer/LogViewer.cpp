@@ -75,29 +75,9 @@ internal void GUIApp_Run(WM_Window mainWinwow)
         for(WM_Event *event = events.first, *nextEvent = nullptr; event != nullptr; event = nextEvent)
         {
             /// TODO: Produce commands and move this to a function
-            switch (event->kind)
-            {
-                case WM_EventKind::WindowClose:
-                {
-                    /// TODO: Do this in the command not here
-                    if(WindowManager_CheckWindowsMatch(event->window, g_logViewerState.mainWindow))
-                    {
-                        quit = true;
-                    }
-                } break;
-                case WM_EventKind::WindowPaint:
-                {
-                } break;
-                case WM_EventKind::Null:
-                case WM_EventKind::Count:
-                default:
-                {
-                } break;
-            }
             nextEvent = event->next;
             WindowManager_EatEvent(&events, event);
         }
         LogViewer_MarkFrameProcessed();
     }
-    PostQuitMessage(0);
 }
