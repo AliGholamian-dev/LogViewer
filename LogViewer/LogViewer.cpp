@@ -99,4 +99,5 @@ internal void GUIApp_Run(WM_Window mainWinwow)
         }
         LogViewer_MarkFrameProcessed();
     }
+    PostQuitMessage(0);
 }

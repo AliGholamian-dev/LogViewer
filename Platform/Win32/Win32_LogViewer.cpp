@@ -16,7 +16,7 @@
     #pragma warning(disable: 4668)
     #include <Windows.h>
     #include <shellapi.h>
-    #define STB_SPRINTF_DECORATE(name) logview_##name
+    #define STB_SPRINTF_DECORATE(name) base_##name
     #define STB_SPRINTF_IMPLEMENTATION
     #define STB_SPRINTF_STATIC
     #include "Vendor/stb/stb_sprintf.h"
